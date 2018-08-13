@@ -1,0 +1,4 @@
+NAME;FASTQ;INPUT;SPIKE;AB;USER
+E14-Ring1b;/hpcnfs/techunits/genomics/PublicData/Pasini/ascelfo/FASTQ/160314/Sample_R1b_E14_S13856;E14;FALSE;HM;ascelfo
+HFSC-Ring1b;/hpcnfs/techunits/genomics/PublicData/Pasini/spivetti/FASTQ/180504/Sample_LGR5-ISC-ChIP-RING1B_SP_S18602;HFSC;FALSE;Sigma;spivetti
+E14-K27me3;/hpcnfs/techunits/genomics/PublicData/Pasini/ascelfo/FASTQ/160701/Sample_E14_K27me3_SPIKEIN_S14633;E14;TRUE;X;ascelfo

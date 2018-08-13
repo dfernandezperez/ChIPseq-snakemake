@@ -1,0 +1,44 @@
+{
+    "__default__" :
+    {
+        "cpu" : 1,
+        "email" : "ieo4462@ieo.it",
+        "EmailNotice" : "a",
+        "jname" : "ChIPseq.{rule}.{wildcards}",
+        "output" : "clusterLogs/{rule}.{wildcards}.out",
+        "error" : "clusterLogs/{rule}.{wildcards}.err"
+    },
+    "merge_fastqs" :
+    {
+        "cpu" : 5
+    },
+    "fastqc":
+    {
+        "cpu" : 5
+    },
+    "align":
+    {
+        "cpu" : 10
+    },
+    "sortIndex_bam":
+    {
+        "cpu" : 5
+    },
+    "phantom_peak_qual":
+    {
+	    "cpu" : 5
+    },
+    "bam2bigwig":
+    {
+        "cpu" : 10
+    },
+        "call_peaks":
+    {
+        "EmailNotice": "ae",
+        "cpu" : 1
+    },
+        "multiQC":
+    {
+        "EmailNotice": "ae"
+    }
+}
