@@ -112,8 +112,8 @@ if NOSPIKE_SAMPLES:
             bowtie -p {threads} {params.bowtie} -q {input} -S 2> {log.bowtie} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
-            | samtools sort -m 2G -@ {threads} -T {output}.tmp -o {output} {input} 2> {log.sort_index} \
-            | samtools index {output} 2>> {log.sort_index}
+            | samtools sort -m 2G -@ {threads} -T {output}.tmp -o {output} {input} 2> {log.sort_index}
+            samtools index {output} 2>> {log.sort_index}
             """
 
 if  SPIKE_SAMPLES:
@@ -135,14 +135,14 @@ if  SPIKE_SAMPLES:
             bowtie -p {threads} {params.bowtie_mm} -q {input} -S 2> {log.bowtie[0]} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
-            | samtools sort -m 2G -@ {threads} -T {output.mm}.tmp -o {output.mm} {input} 2> {log.sort_index} \
-            | samtools index {output} 2>> {log.sort_index}
+            | samtools sort -m 2G -@ {threads} -T {output.mm}.tmp -o {output.mm} {input} 2> {log.sort_index}
+            samtools index {output} 2>> {log.sort_index}
 
             bowtie -p {threads} {params.bowtie_dm} -q {input} -S 2> {log.bowtie[1]} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
-            | samtools sort -m 2G -@ {threads} -T {output.dm}.tmp -o {output.dm} {input} 2> {log.sort_index} \
-            | samtools index {output} 2>> {log.sort_index}
+            | samtools sort -m 2G -@ {threads} -T {output.dm}.tmp -o {output.dm} {input} 2> {log.sort_index}
+            samtools index {output} 2>> {log.sort_index}
 
             python scripts/remove_spikeDups.py {output.mm} {output.dm}
             
