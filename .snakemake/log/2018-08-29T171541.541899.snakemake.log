@@ -1,4 +1,0 @@
-Building DAG of jobs...
-MissingInputException in line 145 of /hpcnfs/scratch/DP/dfernand/Test3/ChIPseq-snakemake/Snakefile:
-Missing input files for rule sortIndex_bam:
-02aln/E14-K27me3.bam

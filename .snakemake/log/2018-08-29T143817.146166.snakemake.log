@@ -1,3 +1,0 @@
-KeyError in line 105 of /hpcnfs/scratch/DP/dfernand/Test3/ChIPseq-snakemake/Snakefile:
-'idx_bt1_mm'
-  File "/hpcnfs/scratch/DP/dfernand/Test3/ChIPseq-snakemake/Snakefile", line 105, in <module>

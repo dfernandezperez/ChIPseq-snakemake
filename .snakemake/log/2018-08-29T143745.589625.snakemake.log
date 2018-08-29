@@ -1,3 +1,0 @@
-FileNotFoundError in line 5 of /hpcnfs/scratch/DP/dfernand/Test3/ChIPseq-snakemake/Snakefile:
-[Errno 2] No such file or directory: 'configFiles/cluster.json'
-  File "/hpcnfs/scratch/DP/dfernand/Test3/ChIPseq-snakemake/Snakefile", line 5, in <module>
