@@ -120,7 +120,7 @@ if  SPIKE_SAMPLES:
 if NOSPIKE_SAMPLES:
     rule align:
         input: lambda wildcards: NOSPIKE_FASTQ[wildcards.sample]
-        output: "02aln/{sample}.bam", "00log/{sample}.align"
+        output: temp("02aln/{sample}.bam"), "00log/{sample}.align"
         threads: CLUSTER["align"]["cpu"]   
         params:
                 bowtie = "--chunkmbs 1024 -m 1 --best " + config["idx_bt1_mm9"]
