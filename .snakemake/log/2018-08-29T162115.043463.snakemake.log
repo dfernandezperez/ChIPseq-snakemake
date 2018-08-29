@@ -1,0 +1,21 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 1
+Rules claiming more threads will be scaled down.
+Job counts:
+	count	jobs
+	1	GC_bias
+	1	align
+	1	all
+	1	bam2bigwig
+	1	call_peaks
+	1	flagstat_bam
+	1	multiQC
+	1	peakAnnot
+	1	phantom_peak_qual
+	1	sortIndex_bam
+	10
+
+[Wed Aug 29 16:21:15 2018]
+Job 10: Aligning fastq/E14-Ring1b.fastq with parameters --chunkmbs 1024 -m 1 --best /hpcnfs/techunits/bioinformatics/db/bowtie/mm9/mm9
+

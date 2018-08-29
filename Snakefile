@@ -6,7 +6,6 @@ CLUSTER = json.load(open(config['CLUSTER_JSON']))
 FILES = json.load(open(config['SAMPLES_JSON']))
 ALL_SAMPLES = sorted(FILES.keys())
 
-
 #######################################################################################################################
 ### Process a little bit the input files. Check if there are samples with spike-in and define all the target output files
 #######################################################################################################################
@@ -35,7 +34,6 @@ SPIKE_BAM = dict(zip(SPIKE_SAMPLES, SPIKE_BAM))
 NOSPIKE_BAM = dict(zip(NOSPIKE_SAMPLES, NOSPIKE_BAM))
 
 
-
 #######################################################################################################################
 ### DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE
 #######################################################################################################################
@@ -48,7 +46,7 @@ ALL_BAM = expand("02aln/{sample}.sorted.bam", sample = ALL_SAMPLES)
 ALL_FLAGSTAT = expand("02aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES)
 ALL_PEAKS = expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.xls", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_PHANTOM = expand("04phantompeakqual/{sample}_phantom.txt", sample = ALL_SAMPLES)
-ALL_PEAKANNOT = expand("peak_annot/{sample}_{control}-input/{sample}_peaks_p10.annot", zip, sample=ALL_SAMPLES, control=CONTROLS)
+ALL_PEAKANNOT = expand("07peak_annot/{sample}_{control}-input/{sample}_peaks_p10.annot", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_BIGWIG = expand( "05bigwig/{sample}_{control}-input.bw", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_GCBIAS = expand("06gcBias/{sample}_{control}-input_GCbias.pdf", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_QC = ["10multiQC/multiQC_log.html"]
@@ -73,13 +71,13 @@ rule merge_fastqs:
     output: temp("fastq/{sample}.fastq")
     log: "00log/{sample}_unzip"
     threads: CLUSTER["merge_fastqs"]["cpu"]
-    params: fastp = " /hpcnfs/data/DP/software/fastp"
+    params: fastp = "/hpcnfs/data/DP/software/fastp", 
+            fastp_params = "-j 00log/{sample}_fastp.json -h 00log/{sample}_fastp.html --stdin -t 1 -A -Q -L "
     message: "merging fastq files {input}/*.fastq.gz into {output}"
     shell:
         """
         set +u; source activate DPbase; set -u
-        zcat {input}/*fastq.gz | {params.fastp} --stdin -o {output} -w {threads} -t 1 -A -Q -L 2> {log}
-        rm fastp.html fastp.json # Remove the stupid report files created by fastp
+        zcat {input}/*fastq.gz | {params.fastp} -o {output} -w {threads} {params.fastp_params} 2> {log}
         """
 
 rule fastqc:
@@ -96,38 +94,10 @@ rule fastqc:
 
 # Check if there's spike in, get the duplicates marked sorted bam, remove unmapped reads by samtools view -F 4 and duplicated reads by samblaster -r
 # samblaster should run before samtools sort
-if  SPIKE_SAMPLES:
-    rule align_spike:
-        input: lambda wildcards: SPIKE_FASTQ[wildcards.sample]
-        output: mm = temp("02aln/{sample}.bam"), dm = "02aln_dm6/{sample}_dm6.bam", "00log/{sample}.align"
-        threads: CLUSTER["align"]["cpu"]
-        params:
-                bowtie_mm = "--chunkmbs 1024 -m 1 --best " + config["idx_bt1_mm"],
-                bowtie_dm = "--chunkmbs 1024 -m 1 --best " + config["idx_bt1_dm"]
-        message: "Aligning {input} with parameters {params.bowtie_mm}"
-        log:
-            bowtie = ["00log/{sample}.align", "00log/{sample}.dm6_align"],
-            markdup = "00log/{sample}.markdup"
-        shell:
-            """
-            set +u; source activate DPbase; set -u
-            bowtie -p {threads} {params.bowtie_mm} -q {input} -S 2> {log.bowtie[0]} \
-            | samblaster --removeDups 2> {log.markdup} \
-            | samtools view -Sb -F 4 - > {output.mm}.tmp
-
-            bowtie -p {threads} {params.bowtie_dm} -q {input} -S 2> {log.bowtie[1]} \
-            | samblaster --removeDups 2> {log.markdup} \
-            | samtools view -Sb -F 4 - > {output.dm}.tmp
-
-            python scripts/remove_spikeDups.py {output[0]} {output[1]}
-            
-            mv {output.mm}.clean {output.mm}; mv {output.dm}.clean {output.dm}
-            """
-
 if NOSPIKE_SAMPLES:
     rule align:
         input: lambda wildcards: NOSPIKE_FASTQ[wildcards.sample]
-        output: "02aln/{sample}.bam", "00log/{sample}.align"
+        output: temp("02aln/{sample}.bam")
         threads: CLUSTER["align"]["cpu"]
         params:
                 bowtie = "--chunkmbs 1024 -m 1 --best " + config["idx_bt1_mm"]
@@ -140,7 +110,35 @@ if NOSPIKE_SAMPLES:
             set +u; source activate DPbase; set -u
             bowtie -p {threads} {params.bowtie} -q {input} -S 2> {log.bowtie} \
             | samblaster --removeDups 2> {log.markdup} \
-            | samtools view -Sb -F 4 - > {output[0]}
+            | samtools view -Sb -F 4 - > {output}
+            """
+
+if  SPIKE_SAMPLES:
+    rule align_spike:
+        input: lambda wildcards: SPIKE_FASTQ[wildcards.sample]
+        output: mm = temp("02aln/{sample}.bam"), dm = "02aln_dm6/{sample}_dm6.bam"
+        threads: CLUSTER["align"]["cpu"]
+        params:
+                bowtie_mm = "--chunkmbs 1024 -m 1 --best " + config["idx_bt1_mm"],
+                bowtie_dm = "--chunkmbs 1024 -m 1 --best " + config["idx_bt1_dm"]
+        message: "Aligning {input} with parameters {params.bowtie_mm}"
+        log:
+            bowtie = ["00log/{sample}.align", "00log/{sample}.dm_align"],
+            markdup = "00log/{sample}.markdup"
+        shell:
+            """
+            set +u; source activate DPbase; set -u
+            bowtie -p {threads} {params.bowtie_mm} -q {input} -S 2> {log.bowtie[0]} \
+            | samblaster --removeDups 2> {log.markdup} \
+            | samtools view -Sb -F 4 - > {output.mm}
+
+            bowtie -p {threads} {params.bowtie_dm} -q {input} -S 2> {log.bowtie[1]} \
+            | samblaster --removeDups 2> {log.markdup} \
+            | samtools view -Sb -F 4 - > {output.dm}
+
+            python scripts/remove_spikeDups.py {output.mm} {output.dm}
+            
+            mv {output.mm}.clean {output.mm}; mv {output.dm}.clean {output.dm}
             """
 
 rule sortIndex_bam:
@@ -205,11 +203,11 @@ rule phantom_peak_qual:
 
 rule peakAnnot:
     input : rules.call_peaks.output.bed_p10
-    output: annot="peak_annot/{sample}_{control}-input/{sample}_peaks_p10.annot",
-            promo_bed_targets="peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoTargets.bed",
-            promoTargets="peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoTargets.txt",
-            promoBed="peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoPeaks.bed",
-            distalBed="peak_annot/{sample}_{control}-input/{sample}_peaks_p10_distalPeaks.bed"
+    output: annot="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10.annot",
+            promo_bed_targets="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoTargets.bed",
+            promoTargets="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoTargets.txt",
+            promoBed="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoPeaks.bed",
+            distalBed="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_distalPeaks.bed"
     log: "00log/{sample}_{control}-input_peakanot"
     message: "Annotating peaks for {wildcards.sample}"
     shell:

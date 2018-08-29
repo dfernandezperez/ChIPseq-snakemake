@@ -1,0 +1,2 @@
+SyntaxError in line 37 of /hpcnfs/scratch/DP/dfernand/Test3/ChIPseq-snakemake/Snakefile:
+Missing parentheses in call to 'print'

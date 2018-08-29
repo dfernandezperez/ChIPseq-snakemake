@@ -1,5 +1,5 @@
 import pysam
-
+import sys
 
 def get_all_readsId(bamfile):
 # Funtion to get a list (set) with all the read IDs from a bamfile. First it will index the bam.
@@ -50,6 +50,6 @@ def write_unique_reads(bamfile1, bamfile2, common_reads):
 
 
 if __name__ == "__main__":
-	bam1, bam2 = snakemake.output[0], snakemake.output[1]
+	bam1, bam2 = sys.argv[1], sys.argv[2]
 	common = get_common_readId(bam1, bam2)
 	write_unique_reads(bam1, bam2, common)

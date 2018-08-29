@@ -1,0 +1,53 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cluster nodes: 999
+Job counts:
+	count	jobs
+	2	GC_bias
+	1	align
+	1	align_spike
+	1	all
+	1	bam2bigwig
+	1	bam2bigwig_spike
+	2	call_peaks
+	2	fastqc
+	2	flagstat_bam
+	2	merge_fastqs
+	1	multiQC
+	2	peakAnnot
+	2	phantom_peak_qual
+	2	sortIndex_bam
+	22
+
+[Wed Aug 29 14:42:02 2018]
+Job 21: merging fastq files /hpcnfs/scratch/DP/dfernand/Test3/fastq-test/K27me3/*.fastq.gz into fastq/E14-K27me3.fastq
+
+Submitted job 21 with external jobid '36253.hpcfe01'.
+
+[Wed Aug 29 14:42:02 2018]
+Job 19: merging fastq files /hpcnfs/scratch/DP/dfernand/Test3/fastq-test/Ring1b/*.fastq.gz into fastq/E14-Ring1b.fastq
+
+Submitted job 19 with external jobid '36254.hpcfe01'.
+[Wed Aug 29 14:43:02 2018]
+Finished job 21.
+1 of 22 steps (5%) done
+
+[Wed Aug 29 14:43:02 2018]
+Job 18: Aligning fastq/E14-K27me3.fastq with parameters --chunkmbs 1024 -m 1 --best /hpcnfs/techunits/bioinformatics/db/bowtie/mm9/mm9
+
+    [Wed Aug 29 14:43:02 2018]
+    Error in rule merge_fastqs:
+        jobid: 19
+        output: fastq/E14-Ring1b.fastq
+        log: 00log/E14-Ring1b_unzip
+        cluster_jobid: 36254.hpcfe01
+
+Submitted job 18 with external jobid '36255.hpcfe01'.
+
+[Wed Aug 29 14:43:02 2018]
+Job 9: Running fastqc for fastq/E14-K27me3.fastq
+
+Submitted job 9 with external jobid '36256.hpcfe01'.
+[Wed Aug 29 14:44:02 2018]
+Finished job 9.
+2 of 22 steps (9%) done

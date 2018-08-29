@@ -1,7 +1,7 @@
 
 # Bowtie indexes
-idx_bt1_mm9: /hpcnfs/techunits/bioinformatics/db/bowtie/mm9/mm9
-idx_bt1_dm6: /hpcnfs/data/DP/dm6/dm6
+idx_bt1_mm: /hpcnfs/techunits/bioinformatics/db/bowtie/mm9/mm9
+idx_bt1_dm: /hpcnfs/data/DP/dm6/dm6
 
 # MACS2 parameters
 macs2_g: mm
@@ -9,6 +9,6 @@ macs2_pvalue: 1e-5
 macs2_pvalue_broad: 1e-5
 
 # json files
-SAMPLES_JSON: 'configFiles/samples.json'
-CLUSTER_JSON: 'configFiles/cluster.json'
+SAMPLES_JSON: 'samples.json'
+CLUSTER_JSON: 'cluster.json'
 
