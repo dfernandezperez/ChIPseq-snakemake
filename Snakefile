@@ -113,13 +113,13 @@ if  SPIKE_SAMPLES:
             set +u; source activate DPbase; set -u
             bowtie -p {threads} {params.bowtie_mm} -q {input} -S 2> {log.bowtie[0]} \
             | samblaster --removeDups 2> {log.markdup} \
-            | samtools view -Sb -F 4 - > {output[0]}
+            | samtools view -Sb -F 4 - > {output[0]}.tmp
 
             bowtie -p {threads} {params.bowtie_dm} -q {input} -S 2> {log.bowtie[1]} \
             | samblaster --removeDups 2> {log.markdup} \
-            | samtools view -Sb -F 4 - > {output[1]}
+            | samtools view -Sb -F 4 - > {output[1]}.tmp
 
-            python scripts/remove_spikeDups.py {output[0]} {output[1]}
+            python scripts/remove_spikeDups.py {output[0]}.tmp {output[1]}.tmp
             """
 
 if NOSPIKE_SAMPLES:
