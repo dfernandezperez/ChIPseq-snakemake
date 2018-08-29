@@ -99,7 +99,7 @@ rule fastqc:
 if  SPIKE_SAMPLES:
     rule align_spike:
         input: lambda wildcards: SPIKE_FASTQ[wildcards.sample]
-        output: temp("02aln/{sample}.bam"), "02aln_dm6/{sample}_dm6.bam", "00log/{sample}.align"
+        output: mm = temp("02aln/{sample}.bam"), dm = "02aln_dm6/{sample}_dm6.bam", "00log/{sample}.align"
         threads: CLUSTER["align"]["cpu"]
         params:
                 bowtie_mm = "--chunkmbs 1024 -m 1 --best " + config["idx_bt1_mm"],
@@ -113,13 +113,15 @@ if  SPIKE_SAMPLES:
             set +u; source activate DPbase; set -u
             bowtie -p {threads} {params.bowtie_mm} -q {input} -S 2> {log.bowtie[0]} \
             | samblaster --removeDups 2> {log.markdup} \
-            | samtools view -Sb -F 4 - > {output[0]}.tmp
+            | samtools view -Sb -F 4 - > {output.mm}.tmp
 
             bowtie -p {threads} {params.bowtie_dm} -q {input} -S 2> {log.bowtie[1]} \
             | samblaster --removeDups 2> {log.markdup} \
-            | samtools view -Sb -F 4 - > {output[1]}.tmp
+            | samtools view -Sb -F 4 - > {output.dm}.tmp
 
-            python scripts/remove_spikeDups.py {output[0]}.tmp {output[1]}.tmp
+            python scripts/remove_spikeDups.py {output[0]} {output[1]}
+            
+            mv {output.mm}.clean {output.mm}; mv {output.dm}.clean {output.dm}
             """
 
 if NOSPIKE_SAMPLES:
