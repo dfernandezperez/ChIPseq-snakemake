@@ -114,7 +114,7 @@ if  SPIKE_SAMPLES:
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - > {output[1]}
 
-            bash scripts/remove_spikeDups.sh {output[0]} {output[1]}
+            python scripts/remove_spikeDups.py {output[0]} {output[1]}
             """
 
 if NOSPIKE_SAMPLES:
