@@ -28,8 +28,8 @@ SPIKE_FASTQ = dict(zip(SPIKE_SAMPLES, SPIKE_FASTQ))
 NOSPIKE_FASTQ = dict(zip(NOSPIKE_SAMPLES, NOSPIKE_FASTQ))
 
 # Do the same but for the bam files, that will be used for the bigwig creation (spike in have to be normalized in a diff way)
-SPIKE_BAM = expand("02aln/{sample}.sorted.bam", sample = SPIKE_SAMPLES)
-NOSPIKE_BAM = expand("02aln/{sample}.sorted.bam", sample = NOSPIKE_SAMPLES)
+SPIKE_BAM = expand("02aln/{sample}.bam", sample = SPIKE_SAMPLES)
+NOSPIKE_BAM = expand("02aln/{sample}.bam", sample = NOSPIKE_SAMPLES)
 SPIKE_BAM = dict(zip(SPIKE_SAMPLES, SPIKE_BAM))
 NOSPIKE_BAM = dict(zip(NOSPIKE_SAMPLES, NOSPIKE_BAM))
 
@@ -42,8 +42,8 @@ CONTROLS = [FILES[x]["INPUT"] for x in ALL_SAMPLES]
 
 
 ALL_FASTQC = expand("01fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
-ALL_BAM = expand("02aln/{sample}.sorted.bam", sample = ALL_SAMPLES)
-ALL_FLAGSTAT = expand("02aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES)
+ALL_BAM = expand("02aln/{sample}.bam", sample = ALL_SAMPLES)
+ALL_FLAGSTAT = expand("02aln/{sample}.bam.flagstat", sample = ALL_SAMPLES)
 ALL_PEAKS = expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.xls", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_PHANTOM = expand("04phantompeakqual/{sample}_phantom.txt", sample = ALL_SAMPLES)
 ALL_PEAKANNOT = expand("07peak_annot/{sample}_{control}-input/{sample}_peaks_p10.annot", zip, sample=ALL_SAMPLES, control=CONTROLS)
@@ -104,13 +104,16 @@ if NOSPIKE_SAMPLES:
         message: "Aligning {input} with parameters {params.bowtie}"
         log:
             bowtie = "00log/{sample}.align",
-            markdup = "00log/{sample}.markdup"
+            markdup = "00log/{sample}.markdup",
+            sort_index = "00log/{sample}.sortIndex_bam"
         shell:
             """
             set +u; source activate DPbase; set -u
             bowtie -p {threads} {params.bowtie} -q {input} -S 2> {log.bowtie} \
             | samblaster --removeDups 2> {log.markdup} \
-            | samtools view -Sb -F 4 - > {output}
+            | samtools view -Sb -F 4 - \
+            | samtools sort -m 2G -@ {threads} -T {output}.tmp -o {output} {input} 2> {log.sort_index} \
+            | samtools index {output} 2>> {log.sort_index}
             """
 
 if  SPIKE_SAMPLES:
@@ -124,40 +127,32 @@ if  SPIKE_SAMPLES:
         message: "Aligning {input} with parameters {params.bowtie_mm}"
         log:
             bowtie = ["00log/{sample}.align", "00log/{sample}.dm_align"],
-            markdup = "00log/{sample}.markdup"
+            markdup = "00log/{sample}.markdup",
+            sort_index = "00log/{sample}.sortIndex_bam"
         shell:
             """
             set +u; source activate DPbase; set -u
             bowtie -p {threads} {params.bowtie_mm} -q {input} -S 2> {log.bowtie[0]} \
             | samblaster --removeDups 2> {log.markdup} \
-            | samtools view -Sb -F 4 - > {output.mm}
+            | samtools view -Sb -F 4 - \
+            | samtools sort -m 2G -@ {threads} -T {output.mm}.tmp -o {output.mm} {input} 2> {log.sort_index} \
+            | samtools index {output} 2>> {log.sort_index}
 
             bowtie -p {threads} {params.bowtie_dm} -q {input} -S 2> {log.bowtie[1]} \
             | samblaster --removeDups 2> {log.markdup} \
-            | samtools view -Sb -F 4 - > {output.dm}
+            | samtools view -Sb -F 4 - \
+            | samtools sort -m 2G -@ {threads} -T {output.dm}.tmp -o {output.dm} {input} 2> {log.sort_index} \
+            | samtools index {output} 2>> {log.sort_index}
 
             python scripts/remove_spikeDups.py {output.mm} {output.dm}
             
             mv {output.mm}.clean {output.mm}; mv {output.dm}.clean {output.dm}
             """
 
-rule sortIndex_bam:
-    input:  "02aln/{sample}.bam"
-    output: "02aln/{sample}.sorted.bam"
-    log:    "00log/{sample}.sortIndex_bam"
-    threads: CLUSTER["sortIndex_bam"]["cpu"]
-    message: "sorting and indexing {input}"
-    shell:
-        """
-        set +u; source activate DPbase; set -u
-        samtools sort -m 2G -@ {threads} -T {output}.tmp -o {output} {input} 2> {log}
-        samtools index {output} 2>> {log}
-        """
-
 # This one is to have the number of mapped reads after removing the duplicates in a format that multiQC can recognize
 rule flagstat_bam:
-    input:  "02aln/{sample}.sorted.bam"
-    output: "02aln/{sample}.sorted.bam.flagstat"
+    input:  "02aln/{sample}.bam"
+    output: "02aln/{sample}.bam.flagstat"
     log:    "00log/{sample}.flagstat_bam"
     message: "flagstat_bam {input}"
     shell:
@@ -170,7 +165,7 @@ rule flagstat_bam:
 ### PEAK CALLING WITH MACS2 AND PEAK QUALITY STATS WITH SPP
 #######################################################################################################################
 rule call_peaks:
-    input: case="02aln/{sample}.sorted.bam", reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
+    input: case="02aln/{sample}.bam", reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
     output: peaks_xls="03peak_macs2/{sample}_{control}-input/{sample}_peaks.xls",
             narrowPeak="03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak",
             bed_p10="03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
@@ -188,7 +183,7 @@ rule call_peaks:
         """
 
 rule phantom_peak_qual:
-    input: "02aln/{sample}.sorted.bam"
+    input: "02aln/{sample}.bam"
     output: "04phantompeakqual/{sample}_phantom.txt"
     log: "00log/{sample}_phantompeakqual.log"
     threads: CLUSTER["phantom_peak_qual"]["cpu"]
@@ -277,7 +272,7 @@ if SPIKE_SAMPLES:
             """
 
 rule GC_bias:
-    input: bam="02aln/{sample}.sorted.bam", bed="03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
+    input: bam="02aln/{sample}.bam", bed="03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
     output: pdf="06gcBias/{sample}_{control}-input_GCbias.pdf", tmp_txt=temp("06gcBias/{sample}_{control}-input_GCbias.txt")
     log: "00log/{sample}_{control}-input_GCbias.log"
     params: repeatMasker = "/hpcnfs/data/DP/Databases/RepeatMasker_noRandom.bed",
@@ -301,7 +296,7 @@ rule multiQC:
     input :
         expand("00log/{sample}.align", sample = ALL_SAMPLES),
         expand("01fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES),
-        expand("02aln/{sample}.sorted.bam.flagstat", sample = ALL_SAMPLES)
+        expand("02aln/{sample}.bam.flagstat", sample = ALL_SAMPLES)
     output: "10multiQC/multiQC_log.html"
     params: log_name = "multiQC_log"
     log: "00log/multiqc.log"

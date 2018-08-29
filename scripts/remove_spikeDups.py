@@ -4,7 +4,6 @@ import sys
 def get_all_readsId(bamfile):
 # Funtion to get a list (set) with all the read IDs from a bamfile. First it will index the bam.
 
-	pysam.index(bamfile)
 	f = pysam.AlignmentFile(bamfile,'rb')
 	all_readsid = set()
 	for read in f.fetch():
