@@ -12,3 +12,9 @@ macs2_pvalue_broad: 1e-5
 SAMPLES_JSON: 'samples.json'
 CLUSTER_JSON: 'cluster.json'
 
+# Determine the region corresponding to promoters around TSS
+promoter:
+  # After TSS
+  aTSS: 2500
+  # Before TSS
+  bTSS: 2500

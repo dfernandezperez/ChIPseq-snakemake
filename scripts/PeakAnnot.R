@@ -1,6 +1,8 @@
-#!/hpcnfs/software/r/3.5.0/bin/Rscript
 # Usage --> input.bed output.txt distanceBeforeTSS distanceAfterTSS
 
+require(dplyr)
+require(ChIPseeker)
+require(TxDb.Mmusculus.UCSC.mm9.knownGene)
 
 ####################                                                                                                              
 # DEFINE FUNCTIONS #                                                                                              
@@ -10,8 +12,6 @@
 Peak_Annot <- function(infile, tssRegion = c(-2500, 2500)) {
   
   # Load packages and set parameters
-  require(ChIPseeker)
-  require(TxDb.Mmusculus.UCSC.mm9.knownGene)
   txdb <- TxDb.Mmusculus.UCSC.mm9.knownGene
   
   
@@ -29,12 +29,35 @@ Peak_Annot <- function(infile, tssRegion = c(-2500, 2500)) {
 
 args = commandArgs(trailingOnly=TRUE)
 
-# Read inputs
-file <- args[1]
-outfile <- args[2]
-before <- as.numeric(args[3])
-after <- as.numeric(args[4])
 
-annot <- Peak_Annot(file, tssRegion = c(-before, after))
-write.table(as.data.frame(annot), file = outfile, sep = "\t", quote = F, row.names = F)
+#################
+## Read inputs ##
+#################
+input <- snakemake@input
+before <- as.numeric(snakemake@config[["promoter"]["bTSS"]])
+after <- as.numeric(snakemake@config[["promoter"]["aTSS"]])
+
+####################
+## Annot bed file ##
+####################
+annot <- Peak_Annot(input, tssRegion = c(-before, after)) %>% as.data.frame()
+
+# Filter annotared bed file to obtain promoter target genes, bed files from peaks overlaping with promoters/distal regions and the coordinates of the promoter target genes.
+distal.peaks <- annot %>% subset(annotation != "Promoter") %>% dplyr::select(c("seqnames", "start", "end", "V4", "V5")) 
+promot.peaks <- annot %>% subset(annotation == "Promoter") %>% dplyr::select(c("seqnames", "start", "end", "V4", "V5")) 
+promo.targets.bed <-  annot %>% subset(annotation == "Promoter") %>% 
+  dplyr::select(c("seqnames", "geneStart", "geneEnd", "ENSEMBL", "SYMBOL", "geneStrand")) %>% 
+  mutate(geneStrand = replace(geneStrand, geneStrand == 1, "+")) %>%
+  mutate(geneStrand = replace(geneStrand, geneStrand == 2, "-")) %>% unique()
+promo.targets <- annot %>% subset(annotation == "Promoter") %>% dplyr::select("SYMBOL") %>% unique()
+
+
+##################
+## Write output ##
+##################
+write.table(distal.peaks, file = snakemake@output[["distalBed"]], sep = "\t", quote = F, row.names = F, col.names = F)
+write.table(promot.peaks, file = snakemake@output[["promoBed"]], sep = "\t", quote = F, row.names = F, col.names = F)
+write.table(promo.targets.bed, file = snakemake@output[["promo_bed_targets"]], sep = "\t", quote = F, row.names = F, col.names = F)
+write.table(promo.targets, file = snakemake@output[["promoTargets"]], sep = "\t", quote = F, row.names = F, col.names = F)
+write.table(annot, file = snakemake@output[["annot"]], sep = "\t", quote = F, row.names = F)
 

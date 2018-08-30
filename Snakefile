@@ -194,7 +194,7 @@ rule phantom_peak_qual:
     shell:
         """
         set +u; source activate DPbase; set -u
-        Rscript  /hpcnfs/scratch/DP/dfernand/phantompeakqualtools/run_spp_nodups.R \
+        Rscript  scripts/run_spp_nodups.R \
         -c={input[0]} -savp -rf -p={threads} -odir={params.prefix}  -out={output} -tmpdir={params.prefix}  2> {log}
         """
 
@@ -207,15 +207,11 @@ rule peakAnnot:
             distalBed="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_distalPeaks.bed"
     log: "00log/{sample}_{control}-input_peakanot"
     message: "Annotating peaks for {wildcards.sample}"
-    shell:
-        """
-        set +u; source activate DPbase; set -u
-        /hpcnfs/scratch/DP/dfernand/Scripts/PeakAnnot.R {input} {output.annot} 2500 2500 2> {log}
-        awk '$8 == "Promoter" {{OFS="\t"; if($13 == 1) $13="+"; else $13="-" ; print $1,$10,$11,$15,$18,$13}}' {output.annot} | sort -u > {output.promo_bed_targets}
-        awk '$8 == "Promoter"' {output.annot} | cut -f18 | sort -u > {output.promoTargets}
-        awk '$8 == "Promoter"' {output.annot} | cut -f1,2,3,6,7 | tail -n +2 > {output.promoBed} # the tail -n +2 is to remove the first line (header) from the output bed
-        awk '$8 != "Promoter"' {output.annot} | cut -f1,2,3,6,7 | tail -n +2 > {output.distalBed}
-        """
+    singularity:
+        "shub://dfernandezperez/ChIPseq-software"
+    script:
+        "scripts/PeakAnnot.R"
+
 
 #######################################################################################################################
 ### BAM TO BIGWIG WITH DEEPTOOLS, GC BIAS
