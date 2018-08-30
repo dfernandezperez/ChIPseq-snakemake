@@ -119,7 +119,7 @@ if NOSPIKE_SAMPLES:
 if  SPIKE_SAMPLES:
     rule align_spike:
         input: lambda wildcards: SPIKE_FASTQ[wildcards.sample]
-        output: mm = temp("02aln/{sample}.bam"), dm = "02aln_dm6/{sample}_dm6.bam"
+        output: mm = temp("02aln/{sample}.bam"), dm = "02aln_dm/{sample}_dm.bam"
         threads: CLUSTER["align"]["cpu"]
         params:
                 bowtie_mm = "--chunkmbs 1024 -m 1 --best -S " + config["idx_bt1_mm"],
@@ -136,13 +136,13 @@ if  SPIKE_SAMPLES:
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
             | samtools sort -m 2G -@ {threads} -T {output.mm}.tmp -o {output.mm} - 2> {log.sort_index}
-            samtools index {output} 2>> {log.sort_index}
+            samtools index {output.mm} 2>> {log.sort_index}
 
             bowtie -p {threads} {params.bowtie_dm} -q {input} 2> {log.bowtie[1]} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
             | samtools sort -m 2G -@ {threads} -T {output.dm}.tmp -o {output.dm} - 2> {log.sort_index}
-            samtools index {output} 2>> {log.sort_index}
+            samtools index {output.dm} 2>> {log.sort_index}
 
             python scripts/remove_spikeDups.py {output.mm} {output.dm}
             
@@ -240,7 +240,7 @@ if NOSPIKE_SAMPLES:
 if SPIKE_SAMPLES:
     rule bam2bigwig_spike:
         input: case = lambda wildcards: SPIKE_BAM[wildcards.sample],
-                dm = "02aln_dm6/{sample}_dm6.bam",
+                dm = "02aln_dm/{sample}_dm.bam",
                 reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
         output: bw = "05bigwig/{sample}_{control}-input.bw", bdg = temp("05bigwig/{sample}_{control}-input.bdg")
         params:
