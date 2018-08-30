@@ -116,7 +116,7 @@ if NOSPIKE_SAMPLES:
             samtools index {output} 2>> {log.sort_index}
             """
 
-if  SPIKE_SAMPLES:
+if SPIKE_SAMPLES:
     rule align_spike:
         input: lambda wildcards: SPIKE_FASTQ[wildcards.sample]
         output: mm = temp("02aln/{sample}.bam"), dm = "02aln_dm/{sample}_dm.bam"
@@ -147,6 +147,8 @@ if  SPIKE_SAMPLES:
             python scripts/remove_spikeDups.py {output.mm} {output.dm}
             
             mv {output.mm}.clean {output.mm}; mv {output.dm}.clean {output.dm}
+
+            samtools index {output.mm}; samtools index {output.dm}
             """
 
 # This one is to have the number of mapped reads after removing the duplicates in a format that multiQC can recognize
