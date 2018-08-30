@@ -100,7 +100,7 @@ if NOSPIKE_SAMPLES:
         output: temp("02aln/{sample}.bam")
         threads: CLUSTER["align"]["cpu"]
         params:
-                bowtie = "--chunkmbs 1024 -m 1 --best " + config["idx_bt1_mm"]
+                bowtie = "--chunkmbs 1024 -m 1 --best -S " + config["idx_bt1_mm"]
         message: "Aligning {input} with parameters {params.bowtie}"
         log:
             bowtie = "00log/{sample}.align",
@@ -109,10 +109,10 @@ if NOSPIKE_SAMPLES:
         shell:
             """
             set +u; source activate DPbase; set -u
-            bowtie -p {threads} {params.bowtie} -q {input} -S 2> {log.bowtie} \
+            bowtie -p {threads} {params.bowtie} -q {input} 2> {log.bowtie} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
-            | samtools sort -m 2G -@ {threads} -T {output}.tmp -o {output} {input} 2> {log.sort_index}
+            | samtools sort -m 2G -@ {threads} -T {output}.tmp -o {output} - 2> {log.sort_index}
             samtools index {output} 2>> {log.sort_index}
             """
 
@@ -122,8 +122,8 @@ if  SPIKE_SAMPLES:
         output: mm = temp("02aln/{sample}.bam"), dm = "02aln_dm6/{sample}_dm6.bam"
         threads: CLUSTER["align"]["cpu"]
         params:
-                bowtie_mm = "--chunkmbs 1024 -m 1 --best " + config["idx_bt1_mm"],
-                bowtie_dm = "--chunkmbs 1024 -m 1 --best " + config["idx_bt1_dm"]
+                bowtie_mm = "--chunkmbs 1024 -m 1 --best -S " + config["idx_bt1_mm"],
+                bowtie_dm = "--chunkmbs 1024 -m 1 --best -S " + config["idx_bt1_dm"]
         message: "Aligning {input} with parameters {params.bowtie_mm}"
         log:
             bowtie = ["00log/{sample}.align", "00log/{sample}.dm_align"],
@@ -132,16 +132,16 @@ if  SPIKE_SAMPLES:
         shell:
             """
             set +u; source activate DPbase; set -u
-            bowtie -p {threads} {params.bowtie_mm} -q {input} -S 2> {log.bowtie[0]} \
+            bowtie -p {threads} {params.bowtie_mm} -q {input} 2> {log.bowtie[0]} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
-            | samtools sort -m 2G -@ {threads} -T {output.mm}.tmp -o {output.mm} {input} 2> {log.sort_index}
+            | samtools sort -m 2G -@ {threads} -T {output.mm}.tmp -o {output.mm} - 2> {log.sort_index}
             samtools index {output} 2>> {log.sort_index}
 
-            bowtie -p {threads} {params.bowtie_dm} -q {input} -S 2> {log.bowtie[1]} \
+            bowtie -p {threads} {params.bowtie_dm} -q {input} 2> {log.bowtie[1]} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
-            | samtools sort -m 2G -@ {threads} -T {output.dm}.tmp -o {output.dm} {input} 2> {log.sort_index}
+            | samtools sort -m 2G -@ {threads} -T {output.dm}.tmp -o {output.dm} - 2> {log.sort_index}
             samtools index {output} 2>> {log.sort_index}
 
             python scripts/remove_spikeDups.py {output.mm} {output.dm}
