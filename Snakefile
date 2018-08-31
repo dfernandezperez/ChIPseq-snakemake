@@ -237,28 +237,11 @@ if SPIKE_SAMPLES:
         params:
             chr_sizes = "/hpcnfs/scratch/DP/sjammula/mm9/mm9.chrom.sizes",
             bdg2bw = "/hpcnfs/scratch/DP/sjammula/scripts/Tools/bedGraphToBigWig"
-        log: "00log/{sample}_{control}-input_bigwig.bam2bw"
         threads: CLUSTER["bam2bigwig"]["cpu"]
         message: "making spike-normalized input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
-        shell:
-            """
-            inputNorm=$(samtools view -c {input.reference} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor for the input
-            spikeNorm=$(samtools view -c {input.dm} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor for the spikein sample, used to normalized the final intensity
-            sampleNorm=$(samtools view -c {input.case} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor used to scale the sample to substract the input. This step is done to scale with the same method both input and the sample with spike-in to perform the susbtraction.
+        script:
+            "scripts/bam2bigwig.py"
 
-            # Substract the input to the treatment sample. Extend reads, smoothLength and select bin size.
-            bamCompare -b1 {input.case} -b2 {input.reference} -o {output.bw} -bs 50 --ratio subtract --scaleFactors $sampleNorm:$inputNorm --extendReads 200
-
-            # Now we have to revert the previous normalization and apply the spikein factor. So, we multiply the inverse of the sampleNorm by the spikeFactor. This new factor is applied to the bigwig file created.
-            sampleNorm2spikeNorm=$(echo $spikeNorm | awk -v sN=$sampleNorm '{{printf "%.2f", $1*(1/sN)}}')
-            printf "%s %.2f\\n" "scaleFactor for sampleNorm2spikeNorm is: " "$sampleNorm2spikeNorm"
-
-            # We apply the new normFactor. The output of wiggletools is wig or bedgraph. Then we have to convert again to bigwig.
-            wiggletools write_bg {output.bdg} scale $sampleNorm2spikeNorm {output.bw}
-
-            # Transform bedgraph to biwig and finish
-            {params.bdg2bw} {output.bdg} {params.chr_sizes} {output.bw}
-            """
 
 rule GC_bias:
     input: bam="02aln/{sample}.bam", bed="03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
