@@ -59,8 +59,7 @@ ALL_QC = ["10multiQC/multiQC_log.html"]
 localrules: all
 rule all:
     input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_PEAKANNOT + ALL_QC + ALL_GCBIAS
-
-
+    
 #######################################################################################################################
 ### FASTQC, ALIGNMENT + DEDUP + SABM2BAM SORTED, INDEX BAM
 #######################################################################################################################
@@ -204,9 +203,10 @@ rule peakAnnot:
     message: "Annotating peaks for {wildcards.sample}"
     singularity:
         "shub://dfernandezperez/ChIPseq-software"
-    script:
-        "scripts/PeakAnnot.R"
-
+    shell:
+        """
+        Rscript scripts/PeakAnnot.R {input} {config[promoter][bTSS]} {config[promoter][aTSS]} {output[0]} {output[1]} {output[2]} {output[3]} {output[4]}
+        """
 
 #######################################################################################################################
 ### BAM TO BIGWIG WITH DEEPTOOLS, GC BIAS
