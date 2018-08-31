@@ -1,3 +1,5 @@
+shell.prefix("set +u; source activate DPbase; set -u")
+
 #######################################################################################################################
 ### Load sample sheet and cluster configuration, config file
 #######################################################################################################################
@@ -76,7 +78,6 @@ rule merge_fastqs:
     message: "merging fastq files {input}/*.fastq.gz into {output}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         zcat {input}/*fastq.gz | {params.fastp} -o {output} -w {threads} {params.fastp_params} 2> {log}
         """
 
@@ -88,7 +89,6 @@ rule fastqc:
     message: "Running fastqc for {input}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         fastqc -o 01fqc -f fastq -t {threads} --noextract {input} 2> {log}
         """
 
@@ -108,7 +108,6 @@ if NOSPIKE_SAMPLES:
             sort_index = "00log/{sample}.sortIndex_bam"
         shell:
             """
-            set +u; source activate DPbase; set -u
             bowtie -p {threads} {params.bowtie} -q {input} 2> {log.bowtie} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
@@ -131,7 +130,6 @@ if SPIKE_SAMPLES:
             sort_index = "00log/{sample}.sortIndex_bam"
         shell:
             """
-            set +u; source activate DPbase; set -u
             bowtie -p {threads} {params.bowtie_mm} -q {input} 2> {log.bowtie[0]} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
@@ -159,7 +157,6 @@ rule flagstat_bam:
     message: "flagstat_bam {input}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         samtools flagstat {input} > {output} 2> {log}
         """
 
@@ -177,7 +174,6 @@ rule call_peaks:
     message: "call_peaks macs2 with input {input.reference} for sample {input.case}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         macs2 callpeak -t {input.case} \
             -c {input.reference} --keep-dup all -f BAM -g {config[macs2_g]} \
             --outdir {params.prefix} -n {wildcards.sample} -p {config[macs2_pvalue]} --nomodel &> {log}
@@ -193,7 +189,6 @@ rule phantom_peak_qual:
     message: "phantompeakqual for {params.jobname}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         Rscript  scripts/run_spp_nodups.R \
         -c={input[0]} -savp -rf -p={threads} -odir={params.prefix}  -out={output} -tmpdir={params.prefix}  2> {log}
         """
@@ -225,8 +220,6 @@ if NOSPIKE_SAMPLES:
         message: "making input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
         shell:
             """
-            set +u; source activate DPbase; set -u
-
             inputNorm=$(samtools view -c {input.reference} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor for the input
             sampleNorm=$(samtools view -c {input.case} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor used to scale the sample to substract the input. This step is done to scale with the same method both input and the sample with spike-in to perform the susbtraction.
             printf "%s %f\\n" "scaleFactor for {input.case} is: " "$sampleNorm"
@@ -249,8 +242,6 @@ if SPIKE_SAMPLES:
         message: "making spike-normalized input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
         shell:
             """
-            set +u; source activate DPbase; set -u
-
             inputNorm=$(samtools view -c {input.reference} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor for the input
             spikeNorm=$(samtools view -c {input.dm} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor for the spikein sample, used to normalized the final intensity
             sampleNorm=$(samtools view -c {input.case} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor used to scale the sample to substract the input. This step is done to scale with the same method both input and the sample with spike-in to perform the susbtraction.
@@ -276,14 +267,14 @@ rule GC_bias:
     params: repeatMasker = "/hpcnfs/data/DP/Databases/RepeatMasker_noRandom.bed",
             sumTotalBases = "awk -F\\t 'BEGIN{{SUM=0}}{{ SUM+=$3-$2 }}END{{print SUM}}'",
             tempBed = temp("06gcBias/{sample}_Repeatmasker.bed")
+    threads: CLUSTER["GC_bias"]["cpu"]
     message: "Computing GC bias for sample {wildcards.sample}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         bedops -u {input.bed} {params.repeatMasker} > {params.tempBed}
         covered=$(bedops --merge {params.tempBed} | {params.sumTotalBases})
         eGs=$((2150570000-$covered))
-        computeGCBias -b {input.bam} --effectiveGenomeSize $eGs -g /hpcnfs/data/DP/Databases/mm9.2bit \
+        computeGCBias -b {input.bam} -p {threads} --effectiveGenomeSize $eGs -g /hpcnfs/data/DP/Databases/mm9.2bit \
         -l 200 -bl {params.tempBed} --biasPlot {output.pdf} --GCbiasFrequenciesFile {output.tmp_txt} 2> {log}
         """
 
@@ -301,6 +292,5 @@ rule multiQC:
     message: "multiqc for all logs"
     shell:
         """
-        set +u; source activate DPbase; set -u
         multiqc {input} -o 10multiQC -f -v -n {params.log_name} 2> {log}
         """
