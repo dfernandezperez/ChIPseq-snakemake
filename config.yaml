@@ -1,4 +1,3 @@
-
 # Bowtie indexes
 idx_bt1_mm: /hpcnfs/techunits/bioinformatics/db/bowtie/mm9/mm9
 idx_bt1_dm: /hpcnfs/data/DP/dm6/dm6
@@ -18,3 +17,11 @@ promoter:
   aTSS: 2500
   # Before TSS
   bTSS: 2500
+
+# Other files related to genomes
+# File required by computeGCbias from deeptools
+2bit: '/hpcnfs/data/DP/Databases/mm9.2bit'
+
+#File used by bedgraph2big
+chr_sizes: '/hpcnfs/scratch/DP/sjammula/mm9/mm9.chrom.sizes'
+egenome_size: 2150570000
