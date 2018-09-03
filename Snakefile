@@ -1,4 +1,4 @@
-shell.prefix("set +u; source activate DPbase; set -u")
+#shell.prefix("set +u; source activate DPbase; set -u")
 
 #######################################################################################################################
 ### Load sample sheet and cluster configuration, config file
@@ -230,8 +230,7 @@ if SPIKE_SAMPLES:
                 reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
         output: bw = "05bigwig/{sample}_{control}-input.bw", bdg = temp("05bigwig/{sample}_{control}-input.bdg")
         params:
-            chr_sizes = "/hpcnfs/scratch/DP/sjammula/mm9/mm9.chrom.sizes",
-            bdg2bw = "/hpcnfs/scratch/DP/sjammula/scripts/Tools/bedGraphToBigWig"
+            chr_sizes = config["chr_sizes"]
         threads: CLUSTER["bam2bigwig"]["cpu"]
         message: "making spike-normalized input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
         singularity:
@@ -246,15 +245,17 @@ rule GC_bias:
     log: "00log/{sample}_{control}-input_GCbias.log"
     params: repeatMasker = "/hpcnfs/data/DP/Databases/RepeatMasker_noRandom.bed",
             sumTotalBases = "awk -F\\t 'BEGIN{{SUM=0}}{{ SUM+=$3-$2 }}END{{print SUM}}'",
-            tempBed = temp("06gcBias/{sample}_Repeatmasker.bed")
+            tempBed = temp("06gcBias/{sample}_Repeatmasker.bed"),
+            bit_file = config["2bit"],
+            egenome_size = config["egenome_size"]
     threads: CLUSTER["GC_bias"]["cpu"]
     message: "Computing GC bias for sample {wildcards.sample}"
     shell:
         """
         bedops -u {input.bed} {params.repeatMasker} > {params.tempBed}
         covered=$(bedops --merge {params.tempBed} | {params.sumTotalBases})
-        eGs=$((2150570000-$covered))
-        computeGCBias -b {input.bam} -p {threads} --effectiveGenomeSize $eGs -g /hpcnfs/data/DP/Databases/mm9.2bit \
+        eGs=$(({params.egenome_size}-$covered))
+        computeGCBias -b {input.bam} -p {threads} --effectiveGenomeSize $eGs -g {params.bit_file} \
         -l 200 -bl {params.tempBed} --biasPlot {output.pdf} --GCbiasFrequenciesFile {output.tmp_txt} 2> {log}
         """
 
@@ -262,7 +263,7 @@ rule GC_bias:
 ### FINAL HTML REPORT
 #######################################################################################################################
 rule multiQC:
-    input :
+    input:
         expand("00log/{sample}.align", sample = ALL_SAMPLES),
         expand("01fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES),
         expand("02aln/{sample}.bam.flagstat", sample = ALL_SAMPLES)
