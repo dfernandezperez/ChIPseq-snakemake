@@ -214,19 +214,14 @@ rule peakAnnot:
 if NOSPIKE_SAMPLES:
     rule bam2bigwig:
         input: case = lambda wildcards: NOSPIKE_BAM[wildcards.sample], reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
-        output:  "05bigwig/{sample}_{control}-input.bw"
+        output:  bw = "05bigwig/{sample}_{control}-input.bw"
         log: "00log/{sample}_{control}-input_bigwig.bam2bw"
         threads: CLUSTER["bam2bigwig"]["cpu"]
         message: "making input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
-        shell:
-            """
-            inputNorm=$(samtools view -c {input.reference} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor for the input
-            sampleNorm=$(samtools view -c {input.case} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor used to scale the sample to substract the input. This step is done to scale with the same method both input and the sample with spike-in to perform the susbtraction.
-            printf "%s %f\\n" "scaleFactor for {input.case} is: " "$sampleNorm"
-
-            # Substract the input to the treatment sample. Extend reads, smoothLength and select bin size.
-            bamCompare -b1 {input.case} -b2 {input.reference} -o {output} -bs 50 --ratio subtract --scaleFactors $sampleNorm:$inputNorm --extendReads 200
-            """
+        singularity:
+            "shub://dfernandezperez/ChIPseq-software"
+        script:
+            "scripts/bam2bigwig.py"
 
 if SPIKE_SAMPLES:
     rule bam2bigwig_spike:
@@ -239,8 +234,10 @@ if SPIKE_SAMPLES:
             bdg2bw = "/hpcnfs/scratch/DP/sjammula/scripts/Tools/bedGraphToBigWig"
         threads: CLUSTER["bam2bigwig"]["cpu"]
         message: "making spike-normalized input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
+        singularity:
+            "shub://dfernandezperez/ChIPseq-software"
         script:
-            "scripts/bam2bigwig.py"
+            "scripts/bam2bigwig_spike.py"
 
 
 rule GC_bias:
