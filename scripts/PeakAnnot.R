@@ -1,5 +1,5 @@
-#!/hpcnfs/software/r/3.5.0/bin/Rscript
 # Usage --> input.bed output.txt distanceBeforeTSS distanceAfterTSS
+require(dplyr)
 
 
 ####################                                                                                                              
@@ -29,12 +29,39 @@ Peak_Annot <- function(infile, tssRegion = c(-2500, 2500)) {
 
 args = commandArgs(trailingOnly=TRUE)
 
-# Read inputs
-file <- args[1]
-outfile <- args[2]
-before <- as.numeric(args[3])
-after <- as.numeric(args[4])
 
-annot <- Peak_Annot(file, tssRegion = c(-before, after))
-write.table(as.data.frame(annot), file = outfile, sep = "\t", quote = F, row.names = F)
+#################
+## Read inputs ##
+#################
+input <- args[1]
+before <- as.numeric(args[2])
+after <- as.numeric(args[3])
+out1 <- args[4]
+out2 <- args[5]
+out3 <- args[6]
+out4 <- args[7]
+out5 <- args[8]
 
+####################
+## Annot bed file ##
+####################
+annot <- Peak_Annot(input, tssRegion = c(-before, after)) %>% as.data.frame()
+
+# Filter annotared bed file to obtain promoter target genes, bed files from peaks overlaping with promoters/distal regions and the coordinates of the promoter target genes.
+distal.peaks <- annot %>% subset(annotation != "Promoter") %>% dplyr::select(c("seqnames", "start", "end", "V4", "V5")) 
+promo.peaks <- annot %>% subset(annotation == "Promoter") %>% dplyr::select(c("seqnames", "start", "end", "V4", "V5")) 
+promo.targets.bed <-  annot %>% subset(annotation == "Promoter") %>% 
+  dplyr::select(c("seqnames", "geneStart", "geneEnd", "ENSEMBL", "SYMBOL", "geneStrand")) %>% 
+  mutate(geneStrand = replace(geneStrand, geneStrand == 1, "+")) %>%
+  mutate(geneStrand = replace(geneStrand, geneStrand == 2, "-")) %>% unique()
+promo.targets <- annot %>% subset(annotation == "Promoter") %>% dplyr::select("SYMBOL") %>% unique()
+
+
+##################
+## Write output ##
+##################
+write.table(annot, file = out1, sep = "\t", quote = F, row.names = F)
+write.table(promo.targets.bed, file = out2, sep = "\t", quote = F, row.names = F, col.names = F)
+write.table(promo.targets, file = out3, sep = "\t", quote = F, row.names = F, col.names = F)
+write.table(promo.peaks, file = out4, sep = "\t", quote = F, row.names = F, col.names = F)
+write.table(distal.peaks, file = out5, sep = "\t", quote = F, row.names = F, col.names = F)

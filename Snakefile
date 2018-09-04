@@ -1,3 +1,5 @@
+#shell.prefix("set +u; source activate DPbase; set -u")
+
 #######################################################################################################################
 ### Load sample sheet and cluster configuration, config file
 #######################################################################################################################
@@ -57,8 +59,7 @@ ALL_QC = ["10multiQC/multiQC_log.html"]
 localrules: all
 rule all:
     input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_PEAKANNOT + ALL_QC + ALL_GCBIAS
-
-
+    
 #######################################################################################################################
 ### FASTQC, ALIGNMENT + DEDUP + SABM2BAM SORTED, INDEX BAM
 #######################################################################################################################
@@ -76,7 +77,6 @@ rule merge_fastqs:
     message: "merging fastq files {input}/*.fastq.gz into {output}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         zcat {input}/*fastq.gz | {params.fastp} -o {output} -w {threads} {params.fastp_params} 2> {log}
         """
 
@@ -88,7 +88,6 @@ rule fastqc:
     message: "Running fastqc for {input}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         fastqc -o 01fqc -f fastq -t {threads} --noextract {input} 2> {log}
         """
 
@@ -108,7 +107,6 @@ if NOSPIKE_SAMPLES:
             sort_index = "00log/{sample}.sortIndex_bam"
         shell:
             """
-            set +u; source activate DPbase; set -u
             bowtie -p {threads} {params.bowtie} -q {input} 2> {log.bowtie} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
@@ -131,7 +129,6 @@ if SPIKE_SAMPLES:
             sort_index = "00log/{sample}.sortIndex_bam"
         shell:
             """
-            set +u; source activate DPbase; set -u
             bowtie -p {threads} {params.bowtie_mm} -q {input} 2> {log.bowtie[0]} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
@@ -159,7 +156,6 @@ rule flagstat_bam:
     message: "flagstat_bam {input}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         samtools flagstat {input} > {output} 2> {log}
         """
 
@@ -177,7 +173,6 @@ rule call_peaks:
     message: "call_peaks macs2 with input {input.reference} for sample {input.case}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         macs2 callpeak -t {input.case} \
             -c {input.reference} --keep-dup all -f BAM -g {config[macs2_g]} \
             --outdir {params.prefix} -n {wildcards.sample} -p {config[macs2_pvalue]} --nomodel &> {log}
@@ -193,8 +188,7 @@ rule phantom_peak_qual:
     message: "phantompeakqual for {params.jobname}"
     shell:
         """
-        set +u; source activate DPbase; set -u
-        Rscript  /hpcnfs/scratch/DP/dfernand/phantompeakqualtools/run_spp_nodups.R \
+        Rscript  scripts/run_spp_nodups.R \
         -c={input[0]} -savp -rf -p={threads} -odir={params.prefix}  -out={output} -tmpdir={params.prefix}  2> {log}
         """
 
@@ -207,14 +201,11 @@ rule peakAnnot:
             distalBed="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_distalPeaks.bed"
     log: "00log/{sample}_{control}-input_peakanot"
     message: "Annotating peaks for {wildcards.sample}"
+    singularity:
+        "shub://dfernandezperez/ChIPseq-software"
     shell:
         """
-        set +u; source activate DPbase; set -u
-        /hpcnfs/scratch/DP/dfernand/Scripts/PeakAnnot.R {input} {output.annot} 2500 2500 2> {log}
-        awk '$8 == "Promoter" {{OFS="\t"; if($13 == 1) $13="+"; else $13="-" ; print $1,$10,$11,$15,$18,$13}}' {output.annot} | sort -u > {output.promo_bed_targets}
-        awk '$8 == "Promoter"' {output.annot} | cut -f18 | sort -u > {output.promoTargets}
-        awk '$8 == "Promoter"' {output.annot} | cut -f1,2,3,6,7 | tail -n +2 > {output.promoBed} # the tail -n +2 is to remove the first line (header) from the output bed
-        awk '$8 != "Promoter"' {output.annot} | cut -f1,2,3,6,7 | tail -n +2 > {output.distalBed}
+        Rscript scripts/PeakAnnot.R {input} {config[promoter][bTSS]} {config[promoter][aTSS]} {output[0]} {output[1]} {output[2]} {output[3]} {output[4]}
         """
 
 #######################################################################################################################
@@ -223,21 +214,14 @@ rule peakAnnot:
 if NOSPIKE_SAMPLES:
     rule bam2bigwig:
         input: case = lambda wildcards: NOSPIKE_BAM[wildcards.sample], reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
-        output:  "05bigwig/{sample}_{control}-input.bw"
+        output:  bw = "05bigwig/{sample}_{control}-input.bw"
         log: "00log/{sample}_{control}-input_bigwig.bam2bw"
         threads: CLUSTER["bam2bigwig"]["cpu"]
         message: "making input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
-        shell:
-            """
-            set +u; source activate DPbase; set -u
-
-            inputNorm=$(samtools view -c {input.reference} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor for the input
-            sampleNorm=$(samtools view -c {input.case} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor used to scale the sample to substract the input. This step is done to scale with the same method both input and the sample with spike-in to perform the susbtraction.
-            printf "%s %f\\n" "scaleFactor for {input.case} is: " "$sampleNorm"
-
-            # Substract the input to the treatment sample. Extend reads, smoothLength and select bin size.
-            bamCompare -b1 {input.case} -b2 {input.reference} -o {output} -bs 50 --ratio subtract --scaleFactors $sampleNorm:$inputNorm --extendReads 200
-            """
+        singularity:
+            "shub://dfernandezperez/ChIPseq-software"
+        script:
+            "scripts/bam2bigwig.py"
 
 if SPIKE_SAMPLES:
     rule bam2bigwig_spike:
@@ -246,32 +230,14 @@ if SPIKE_SAMPLES:
                 reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
         output: bw = "05bigwig/{sample}_{control}-input.bw", bdg = temp("05bigwig/{sample}_{control}-input.bdg")
         params:
-            chr_sizes = "/hpcnfs/scratch/DP/sjammula/mm9/mm9.chrom.sizes",
-            bdg2bw = "/hpcnfs/scratch/DP/sjammula/scripts/Tools/bedGraphToBigWig"
-        log: "00log/{sample}_{control}-input_bigwig.bam2bw"
+            chr_sizes = config["chr_sizes"]
         threads: CLUSTER["bam2bigwig"]["cpu"]
         message: "making spike-normalized input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
-        shell:
-            """
-            set +u; source activate DPbase; set -u
+        singularity:
+            "shub://dfernandezperez/ChIPseq-software"
+        script:
+            "scripts/bam2bigwig_spike.py"
 
-            inputNorm=$(samtools view -c {input.reference} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor for the input
-            spikeNorm=$(samtools view -c {input.dm} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor for the spikein sample, used to normalized the final intensity
-            sampleNorm=$(samtools view -c {input.case} | awk '{{printf "%f", 1000000*(1/$1)}}') # Scale factor used to scale the sample to substract the input. This step is done to scale with the same method both input and the sample with spike-in to perform the susbtraction.
-
-            # Substract the input to the treatment sample. Extend reads, smoothLength and select bin size.
-            bamCompare -b1 {input.case} -b2 {input.reference} -o {output.bw} -bs 50 --ratio subtract --scaleFactors $sampleNorm:$inputNorm --extendReads 200
-
-            # Now we have to revert the previous normalization and apply the spikein factor. So, we multiply the inverse of the sampleNorm by the spikeFactor. This new factor is applied to the bigwig file created.
-            sampleNorm2spikeNorm=$(echo $spikeNorm | awk -v sN=$sampleNorm '{{printf "%.2f", $1*(1/sN)}}')
-            printf "%s %.2f\\n" "scaleFactor for sampleNorm2spikeNorm is: " "$sampleNorm2spikeNorm"
-
-            # We apply the new normFactor. The output of wiggletools is wig or bedgraph. Then we have to convert again to bigwig.
-            wiggletools write_bg {output.bdg} scale $sampleNorm2spikeNorm {output.bw}
-
-            # Transform bedgraph to biwig and finish
-            {params.bdg2bw} {output.bdg} {params.chr_sizes} {output.bw}
-            """
 
 rule GC_bias:
     input: bam="02aln/{sample}.bam", bed="03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
@@ -279,15 +245,17 @@ rule GC_bias:
     log: "00log/{sample}_{control}-input_GCbias.log"
     params: repeatMasker = "/hpcnfs/data/DP/Databases/RepeatMasker_noRandom.bed",
             sumTotalBases = "awk -F\\t 'BEGIN{{SUM=0}}{{ SUM+=$3-$2 }}END{{print SUM}}'",
-            tempBed = temp("06gcBias/{sample}_Repeatmasker.bed")
+            tempBed = temp("06gcBias/{sample}_Repeatmasker.bed"),
+            bit_file = config["2bit"],
+            egenome_size = config["egenome_size"]
+    threads: CLUSTER["GC_bias"]["cpu"]
     message: "Computing GC bias for sample {wildcards.sample}"
     shell:
         """
-        set +u; source activate DPbase; set -u
         bedops -u {input.bed} {params.repeatMasker} > {params.tempBed}
         covered=$(bedops --merge {params.tempBed} | {params.sumTotalBases})
-        eGs=$((2150570000-$covered))
-        computeGCBias -b {input.bam} --effectiveGenomeSize $eGs -g /hpcnfs/data/DP/Databases/mm9.2bit \
+        eGs=$(({params.egenome_size}-$covered))
+        computeGCBias -b {input.bam} -p {threads} --effectiveGenomeSize $eGs -g {params.bit_file} \
         -l 200 -bl {params.tempBed} --biasPlot {output.pdf} --GCbiasFrequenciesFile {output.tmp_txt} 2> {log}
         """
 
@@ -295,7 +263,7 @@ rule GC_bias:
 ### FINAL HTML REPORT
 #######################################################################################################################
 rule multiQC:
-    input :
+    input:
         expand("00log/{sample}.align", sample = ALL_SAMPLES),
         expand("01fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES),
         expand("02aln/{sample}.bam.flagstat", sample = ALL_SAMPLES)
@@ -305,6 +273,5 @@ rule multiQC:
     message: "multiqc for all logs"
     shell:
         """
-        set +u; source activate DPbase; set -u
         multiqc {input} -o 10multiQC -f -v -n {params.log_name} 2> {log}
         """

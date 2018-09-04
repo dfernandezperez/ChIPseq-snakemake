@@ -37,6 +37,10 @@
         "EmailNotice": "ae",
         "cpu" : 1
     },
+            "GC_bias":
+    {
+        "cpu" : 5
+    },
         "multiQC":
     {
         "EmailNotice": "ae"
