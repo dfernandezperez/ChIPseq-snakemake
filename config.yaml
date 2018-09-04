@@ -8,8 +8,8 @@ macs2_pvalue: 1e-5
 macs2_pvalue_broad: 1e-5
 
 # json files
-SAMPLES_JSON: 'samples.json'
-CLUSTER_JSON: 'cluster.json'
+SAMPLES_JSON: samples.json
+CLUSTER_JSON: cluster.json
 
 # Determine the region corresponding to promoters around TSS
 promoter:
@@ -20,8 +20,10 @@ promoter:
 
 # Other files related to genomes
 # File required by computeGCbias from deeptools
-2bit: '/hpcnfs/data/DP/Databases/mm9.2bit'
+2bit: /hpcnfs/data/DP/Databases/mm9.2bit
 
-#File used by bedgraph2big
-chr_sizes: '/hpcnfs/scratch/DP/sjammula/mm9/mm9.chrom.sizes'
-egenome_size: 2150570000
+# Bam2bigwig + GC content config
+chr_sizes: /hpcnfs/scratch/DP/sjammula/mm9/mm9.chrom.sizes
+read_extension: 200
+egenome_size: 2304947926
+rep_masker: /hpcnfs/data/DP/Databases/RepeatMasker_noRandom.bed
