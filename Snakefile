@@ -1,5 +1,5 @@
 import pandas as pd
-singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-ChIPseq-software-master-latest.simg"
+singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-ChIPseq-software-master-test2.simg"
 
 #######################################################################################################################
 ### Load sample sheet and cluster configuration, config file
@@ -153,7 +153,7 @@ if SPIKE_SAMPLES:
             bowtie -p {threads} {params.bowtie_dm} -q {input} 2> {log.bowtie[1]} \
             | samblaster --removeDups 2> {log.markdup} \
             | samtools view -Sb -F 4 - \
-            | samtools sort -m 2G -@ {threads} -T {output.dm}.tmp -o {output.dm} - 2> {log.sort_index}
+            | samtools sort -m 2G -@ {threads} -T {output.dm}.tmp -o {output.dm} - 2>> {log.sort_index}
             samtools index {output.dm} 2>> {log.sort_index}
 
             python scripts/remove_spikeDups.py {output.mm} {output.dm}
@@ -204,9 +204,9 @@ rule call_peaks:
             --outdir {params.out_dir} \
             --name {wildcards.sample} \
             --pvalue {config[macs2_pvalue]} \
-            {params.macs2_params} &> {log}            
+            {params.macs2_params} 2> {log}            
         awk "\$8>=10" {output.narrowPeak} | cut -f1-4,8 > {output.bed_p10}
-        rm *_control_lambda.bdg # Remove useless bedgraph created by macs2
+        rm {wildcards.sample}_control_lambda.bdg # Remove useless bedgraph created by macs2
         """
 
 rule phantom_peak_qual:
@@ -271,7 +271,7 @@ if NOSPIKE_SAMPLES:
             --reference {input.reference} \
             --bigwig {output} \
             --extReads {params.read_exten} \
-            --threads {threads} &> {log}
+            --threads {threads} 2> {log}
             """
 
 if SPIKE_SAMPLES:
@@ -299,7 +299,7 @@ if SPIKE_SAMPLES:
             --bigwig {output} \
             --extReads {params.read_exten} \
             --chrSizes {params.chr_sizes} \
-            --threads {threads} &> {log}
+            --threads {threads} 2> {log}
             """
 
 rule GC_bias:
