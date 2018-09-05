@@ -1,5 +1,5 @@
 import pandas as pd
-singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-ChIPseq-software-master-test2.simg"
+singularity: "shub://dfernandezperez/ChIPseq-software:test"
 
 #######################################################################################################################
 ### Load sample sheet and cluster configuration, config file
@@ -224,7 +224,7 @@ rule phantom_peak_qual:
         "Running phantompeakqual for {wildcards.sample}"
     shell:
         """
-        /usr/local/bin/Rscript  scripts/run_spp_nodups.R \
+        Rscript  scripts/run_spp_nodups.R \
         -c={input[0]} -savp -rf -p={threads} -odir={params.out_dir}  -out={output} -tmpdir={params.out_dir}  2> {log}
         """
 
