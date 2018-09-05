@@ -1,32 +1,26 @@
 #shell.prefix("set +u; source activate DPbase; set -u")
-singularity: "shub://dfernandezperez/ChIPseq-software"
+singularity: "shub://dfernandezperez/ChIPseq-software:test"
 
 #######################################################################################################################
 ### Load sample sheet and cluster configuration, config file
 #######################################################################################################################
 configfile: "config.yaml"
 CLUSTER = json.load(open(config['CLUSTER_JSON']))
-FILES = json.load(open(config['SAMPLES_JSON']))
-ALL_SAMPLES = sorted(FILES.keys())
+FILES = pd.read_table(config['samples']).set_index("NAME", drop=False)
 
 #######################################################################################################################
 ### Process a little bit the input files. Check if there are samples with spike-in and define all the target output files
 #######################################################################################################################
+ALL_SAMPLES = FILES.NAME
 # create 2 lists, one containing the samples with spike in and the other without spike-in
-NOSPIKE_SAMPLES = []
-SPIKE_SAMPLES = []
-for sample in ALL_SAMPLES:
-    if "TRUE" == FILES[sample]["SPIKE"]: # If the sample has spike in, the field FILES[sample]["SPIKE"] must contain "TRUE"
-        SPIKE_SAMPLES.append(sample)
-    elif "FALSE" == FILES[sample]["SPIKE"]:
-        NOSPIKE_SAMPLES.append(sample)
+NOSPIKE_SAMPLES = FILES[FILES.SPIKE == False].NAME
+SPIKE_SAMPLES = FILES[FILES.SPIKE == True].NAME
 
 # Now, create the path of the fastq files that will be used as input by bowtie for all samples
-SPIKE_FASTQ = expand("fastq/{sample}.fastq", sample = SPIKE_SAMPLES)
-NOSPIKE_FASTQ = expand("fastq/{sample}.fastq", sample = NOSPIKE_SAMPLES)
-
 # Finally, create a dictionary that has as keys the sampleName and as values the fastq paths.
 #This way then we can acess to each fastq by using the sample name
+SPIKE_FASTQ = expand("fastq/{sample}.fastq", sample = SPIKE_SAMPLES)
+NOSPIKE_FASTQ = expand("fastq/{sample}.fastq", sample = NOSPIKE_SAMPLES)
 SPIKE_FASTQ = dict(zip(SPIKE_SAMPLES, SPIKE_FASTQ))
 NOSPIKE_FASTQ = dict(zip(NOSPIKE_SAMPLES, NOSPIKE_FASTQ))
 
@@ -41,8 +35,7 @@ NOSPIKE_BAM = dict(zip(NOSPIKE_SAMPLES, NOSPIKE_BAM))
 ### DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE
 #######################################################################################################################
 # Get the names of the input files for calling peak and creating bigwig files
-CONTROLS = [FILES[x]["INPUT"] for x in ALL_SAMPLES]
-
+CONTROLS = FILES.INPUT
 
 ALL_FASTQC = expand("01fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
 ALL_BAM = expand("02aln/{sample}.bam", sample = ALL_SAMPLES)

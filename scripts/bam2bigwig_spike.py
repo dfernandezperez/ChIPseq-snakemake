@@ -61,7 +61,6 @@ bamCompare = "bamCompare -b1 " + case + " -b2 " + reference + " -o " + bw + " -b
 
 wiggleTools = "wiggletools write_bg " + bdg + " scale " + sampleNorm2spikeNorm + " " + bw
 
-#bedGraphToBigWig = "/hpcnfs/scratch/DP/sjammula/scripts/Tools/bedGraphToBigWig"
 bdg2bw = "bedGraphToBigWig " + bdg + " " + chr_sizes + " " + bw
 
 subprocess.call(bamCompare.split())
@@ -69,5 +68,5 @@ subprocess.call(wiggleTools.split())
 subprocess.call(bdg2bw.split())
 
 # Cleaning bedgraph file
-#os.remove(bdg)
+os.remove(bdg)
 

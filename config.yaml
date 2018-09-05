@@ -8,7 +8,7 @@ macs2_pvalue: 1e-5
 macs2_pvalue_broad: 1e-5
 
 # json files
-SAMPLES_JSON: samples.json
+samples: samples.txt
 CLUSTER_JSON: cluster.json
 
 # Determine the region corresponding to promoters around TSS
