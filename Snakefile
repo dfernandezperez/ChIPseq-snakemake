@@ -1,5 +1,5 @@
 import pandas as pd
-singularity: "shub://dfernandezperez/ChIPseq-software:test"
+singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-ChIPseq-software-master-latest.simg"
 
 #######################################################################################################################
 ### Load sample sheet and cluster configuration, config file
@@ -78,6 +78,7 @@ rule merge_fastqs:
     shell:
         """
         zcat {input}/*fastq.gz | {params.fastp} -o {output} -w {threads} {params.fastp_params} 2> {log}
+        rm 00log/{wildcards.sample}_fastp.json 00log/{wildcards.sample}_fastp.html
         """
 
 rule fastqc:
@@ -223,7 +224,7 @@ rule phantom_peak_qual:
         "Running phantompeakqual for {wildcards.sample}"
     shell:
         """
-        Rscript  scripts/run_spp_nodups.R \
+        /usr/local/bin/Rscript  scripts/run_spp_nodups.R \
         -c={input[0]} -savp -rf -p={threads} -odir={params.out_dir}  -out={output} -tmpdir={params.out_dir}  2> {log}
         """
 
