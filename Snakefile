@@ -1,4 +1,4 @@
-#shell.prefix("set +u; source activate DPbase; set -u")
+import pandas as pd
 singularity: "shub://dfernandezperez/ChIPseq-software:test"
 
 #######################################################################################################################
@@ -13,8 +13,8 @@ FILES = pd.read_table(config['samples']).set_index("NAME", drop=False)
 #######################################################################################################################
 ALL_SAMPLES = FILES.NAME
 # create 2 lists, one containing the samples with spike in and the other without spike-in
-NOSPIKE_SAMPLES = FILES[FILES.SPIKE == False].NAME
-SPIKE_SAMPLES = FILES[FILES.SPIKE == True].NAME
+NOSPIKE_SAMPLES = list( FILES[FILES.SPIKE == False].NAME )
+SPIKE_SAMPLES = list( FILES[FILES.SPIKE == True].NAME )
 
 # Now, create the path of the fastq files that will be used as input by bowtie for all samples
 # Finally, create a dictionary that has as keys the sampleName and as values the fastq paths.
@@ -59,7 +59,7 @@ rule all:
 #######################################################################################################################
 ## get a list of fastq.gz files for each sample
 def get_fastq(wildcards):
-    return FILES[wildcards.sample]["FASTQ"]
+    return FILES.FASTQ[wildcards.sample]
 
 rule merge_fastqs:
     input: 
@@ -182,23 +182,30 @@ rule flagstat_bam:
 #######################################################################################################################
 rule call_peaks:
     input: 
-        case="02aln/{sample}.bam", 
+        case = "02aln/{sample}.bam", 
         reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
     output: 
-        narrowPeak="03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak",
-        bed_p10="03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
+        narrowPeak = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak",
+        bed_p10 = "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed",
+        bdg = temp("03peak_macs2/{sample}_{control}-input/{sample}_treat_pileup.bdg")
     log:
         "00log/{sample}_{control}-input_macs2.log"
     params:
-            jobname = "{sample}", prefix = "03peak_macs2/{sample}_{control}-input"
+        out_dir = "03peak_macs2/{sample}_{control}-input",
+        macs2_params = "--keep-dup all --format BAM --nomodel --bdg"
     message: 
         "call_peaks macs2 with input {input.reference} for sample {input.case}"
     shell:
         """
-        macs2 callpeak -t {input.case} \
-            -c {input.reference} --keep-dup all -f BAM -g {config[macs2_g]} \
-            --outdir {params.prefix} -n {wildcards.sample} -p {config[macs2_pvalue]} --nomodel &> {log}
+        macs2 callpeak --treatment {input.case} \
+            --control {input.reference} \
+            --gsize {config[macs2_gsize]} \
+            --outdir {params.out_dir} \
+            --name {wildcards.sample} \
+            --pvalue {config[macs2_pvalue]} \
+            {params.macs2_params} &> {log}            
         awk "\$8>=10" {output.narrowPeak} | cut -f1-4,8 > {output.bed_p10}
+        rm *_control_lambda.bdg # Remove useless bedgraph created by macs2
         """
 
 rule phantom_peak_qual:
@@ -211,25 +218,24 @@ rule phantom_peak_qual:
     threads:
         CLUSTER["phantom_peak_qual"]["cpu"]
     params:
-        jobname = "{sample}", prefix = "04phantompeakqual"
+        out_dir = "04phantompeakqual"
     message:
-        "phantompeakqual for {params.jobname}"
+        "Running phantompeakqual for {wildcards.sample}"
     shell:
         """
         Rscript  scripts/run_spp_nodups.R \
-        -c={input[0]} -savp -rf -p={threads} -odir={params.prefix}  -out={output} -tmpdir={params.prefix}  2> {log}
+        -c={input[0]} -savp -rf -p={threads} -odir={params.out_dir}  -out={output} -tmpdir={params.out_dir}  2> {log}
         """
 
 rule peakAnnot:
-#rules.call_peaks.output.bed_p10
     input :
         "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
     output:
-        annot="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10.annot",
-        promo_bed_targets="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoTargets.bed",
-        promoTargets="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoTargets.txt",
-        promoBed="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoPeaks.bed",
-        distalBed="07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_distalPeaks.bed"
+        annot = "07peak_annot/{sample}_{control}-input/{sample}_peaks_p10.annot",
+        promo_bed_targets = "07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoTargets.bed",
+        promoTargets = "07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoTargets.txt",
+        promoBed = "07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoPeaks.bed",
+        distalBed = "07peak_annot/{sample}_{control}-input/{sample}_peaks_p10_distalPeaks.bed"
     log: 
         "00log/{sample}_{control}-input_peakanot"
     message:
@@ -297,16 +303,16 @@ if SPIKE_SAMPLES:
 
 rule GC_bias:
     input: 
-        bam="02aln/{sample}.bam",
-        bed="03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
+        bam = "02aln/{sample}.bam",
+        bed = "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
     output: 
-        pdf="06gcBias/{sample}_{control}-input_GCbias.pdf",
-        tmp_txt=temp("06gcBias/{sample}_{control}-input_GCbias.txt")
+        pdf = "06gcBias/{sample}_{control}-input_GCbias.pdf",
+        freq_txt = "06gcBias/{sample}_{control}-input_GCbias.txt"
     log:
         "00log/{sample}_{control}-input_GCbias.log"
     params:
         repeatMasker = config['rep_masker'],
-        tempBed = temp("06gcBias/{sample}_Repeatmasker.bed"),
+        tempBed = "06gcBias/{sample}_Repeatmasker.bed.tmp",
         bit_file = config["2bit"],
         egenome_size = config["egenome_size"]
     threads:
@@ -323,7 +329,8 @@ rule GC_bias:
             -l 200 \
             -bl {params.tempBed} \
             --biasPlot {output.pdf} \
-            --GCbiasFrequenciesFile {output.tmp_txt} 2> {log}
+            --GCbiasFrequenciesFile {output.freq_txt} 2> {log}
+        rm -f {params.tempBed}
         """
 
 #######################################################################################################################

@@ -3,7 +3,7 @@ idx_bt1_mm: /hpcnfs/techunits/bioinformatics/db/bowtie/mm9/mm9
 idx_bt1_dm: /hpcnfs/data/DP/dm6/dm6
 
 # MACS2 parameters
-macs2_g: mm
+macs2_gsize: mm
 macs2_pvalue: 1e-5
 macs2_pvalue_broad: 1e-5
 
