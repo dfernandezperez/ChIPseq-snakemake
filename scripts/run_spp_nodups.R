@@ -446,8 +446,8 @@ read.align <- function(align.filename) {
 		# generate command to convert bam to tagalign
 		command <- vector(length=2)
 		command[1] <- sprintf("samtools view -F 0x0204 -o - %s",align.filename)
-		command[2] <- paste("awk 'BEGIN{FS=" , '"\t"' , ";OFS=", '"\t"} {if (and($2,16) > 0) {print $3,($4-1),($4-1+length($10)),"N","1000","-"} else {print $3,($4-1),($4-1+length($10)),"N","1000","+"}}', "' 1> ", bam2align.filename, sep="")
-		# command[2] <- paste("awk 'BEGIN{OFS=", '"\t"} {if (and($2,16) > 0) {print $3,($4-1),($4-1+length($10)),"N","1000","-"} else {print $3,($4-1),($4-1+length($10)),"N","1000","+"}}', "' 1> ", bam2align.filename, sep="")	
+		command[2] <- paste("gawk 'BEGIN{FS=" , '"\t"' , ";OFS=", '"\t"} {if (and($2,16) > 0) {print $3,($4-1),($4-1+length($10)),"N","1000","-"} else {print $3,($4-1),($4-1+length($10)),"N","1000","+"}}', "' 1> ", bam2align.filename, sep="")
+		# command[2] <- paste("gawk 'BEGIN{OFS=", '"\t"} {if (and($2,16) > 0) {print $3,($4-1),($4-1+length($10)),"N","1000","-"} else {print $3,($4-1),($4-1+length($10)),"N","1000","+"}}', "' 1> ", bam2align.filename, sep="")	
 		command <- paste(command,collapse=" | ")
 		# Run command
 		status <- system(command,intern=FALSE,ignore.stderr=FALSE)
@@ -648,6 +648,11 @@ if (! is.na(iparams$control.file)) {
 
 # Load SPP library
 library(spp)
+library(caTools)
+# library(graphics)
+# library(parallel)
+# library(Rsamtools)
+# library(stats)
 
 # Read ChIP tagAlign/BAM files
 cat("Reading ChIP tagAlign/BAM file",iparams$chip.file,"\n",file=stdout())

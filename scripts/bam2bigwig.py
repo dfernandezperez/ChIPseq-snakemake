@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 ######################
 ## ARGUMENT PARSING ##
 ######################
-parser = ArgumentParser(description='Bam to bigwig for spike-in samples')
+parser = ArgumentParser(description='Bam to bigwig with deeptools')
 parser.add_argument('-c', '--case', help='case sample bam file', required=True)
 parser.add_argument('-r', '--reference', help='reference file (input) bam file', required=True)
 parser.add_argument('-b', '--bigwig', help='name for the output bigwig file', required=True)

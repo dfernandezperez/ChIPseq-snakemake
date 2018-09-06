@@ -3,9 +3,10 @@ idx_bt1_mm: /hpcnfs/techunits/bioinformatics/db/bowtie/mm9/mm9
 idx_bt1_dm: /hpcnfs/data/DP/dm6/dm6
 
 # MACS2 parameters
-macs2_gsize: mm
-macs2_pvalue: 1e-5
-macs2_pvalue_broad: 1e-5
+macs2:
+  gsize: mm
+  pvalue: 1e-5
+  pvalue_broad: 1e-5
 
 # json files
 samples: samples.txt
@@ -18,12 +19,17 @@ promoter:
   # Before TSS
   bTSS: 2500
 
-# Other files related to genomes
-# File required by computeGCbias from deeptools
-2bit: /hpcnfs/data/DP/Databases/mm9.2bit
+genome:
+  # File required by computeGCbias from deeptools
+  2bit: /hpcnfs/data/DP/Databases/mm9.2bit
+  # Used in computeGCbias to ignore repetitive regions in the calculation
+  rep_masker: /hpcnfs/data/DP/Databases/RepeatMasker_noRandom.bed
+  # File required by bdg2bigwig from ucsc
+  chr_sizes: /hpcnfs/scratch/DP/sjammula/mm9/mm9.chrom.sizes
+  # https://deeptools.readthedocs.io/en/latest/content/feature/effectiveGenomeSize.html
+  egenome_size: 2304947926
 
-# Bam2bigwig + GC content config
-chr_sizes: /hpcnfs/scratch/DP/sjammula/mm9/mm9.chrom.sizes
+
+# Bam2bigwig params
 read_extension: 200
-egenome_size: 2304947926
-rep_masker: /hpcnfs/data/DP/Databases/RepeatMasker_noRandom.bed
+

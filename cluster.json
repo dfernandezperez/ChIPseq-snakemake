@@ -4,7 +4,7 @@
         "cpu" : 1,
         "email" : "ieo4462@ieo.it",
         "EmailNotice" : "a",
-        "jname" : "ChIPseq.{rule}.{wildcards}",
+        "jname" : "{rule}.{wildcards}",
         "output" : "clusterLogs/{rule}.{wildcards}.out",
         "error" : "clusterLogs/{rule}.{wildcards}.err"
     },
