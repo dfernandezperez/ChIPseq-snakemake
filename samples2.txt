@@ -1,0 +1,1 @@
+NAME	FASTQ	INPUT	SPIKE	AB	USER	GENOMEE14-Ring1b	/hpcnfs/scratch/DP/dfernand/Test3/fastq-test/Ring1b	E14	FALSE	HM	ascelfo	mm9E14-K27me3	/hpcnfs/scratch/DP/dfernand/Test3/fastq-test/K27me3	E14	TRUE	X	ascelfo	mm9
