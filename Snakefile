@@ -42,7 +42,7 @@ ALL_BAM = expand("02aln/{sample}.bam", sample = ALL_SAMPLES)
 ALL_FLAGSTAT = expand("02aln/{sample}.bam.flagstat", sample = ALL_SAMPLES)
 ALL_PEAKS = expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_PHANTOM = expand("04phantompeakqual/{sample}_phantom.txt", sample = ALL_SAMPLES)
-ALL_PEAKANNOT = expand("05peak_annot/{sample}_{control}-input/{sample}_peaks_p10.annot", zip, sample=ALL_SAMPLES, control=CONTROLS)
+ALL_PEAKANNOT = expand("05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".annot", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_BIGWIG = expand( "06bigwig/{sample}_{control}-input.bw", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_GCBIAS = expand("07gcBias/{sample}_{control}-input_GCbias.pdf", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_QC = ["10multiQC/multiQC_log.html"]
@@ -185,7 +185,6 @@ rule call_peaks:
         reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
     output: 
         narrowPeak = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak",
-        bed_p10 = "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed",
         bdg = temp("03peak_macs2/{sample}_{control}-input/{sample}_treat_pileup.bdg"),
         bdg_lambda = temp("03peak_macs2/{sample}_{control}-input/{sample}_control_lambda.bdg")
     log:
@@ -206,7 +205,16 @@ rule call_peaks:
             --name {wildcards.sample} \
             --pvalue {params.pvalue} \
             {params.macs2_params} 2> {log}            
-        awk "\$8>=10" {output.narrowPeak} | cut -f1-4,8 > {output.bed_p10}
+        """
+
+rule filter_peaks:
+    input:
+        rules.call_peaks.output.narrowPeak
+    output:
+        bed_filt = "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".bed",
+    shell:
+        """
+        awk "\$8>=10" {input} | cut -f1-4,8 > {output.bed_filt}
         """
 
 rule phantom_peak_qual:
@@ -230,13 +238,13 @@ rule phantom_peak_qual:
 
 rule peakAnnot:
     input :
-        "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
+        rules.filter_peaks.output.bed_filt
     output:
-        annot = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p10.annot",
-        promo_bed_targets = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoTargets.bed",
-        promoTargets = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoTargets.txt",
-        promoBed = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p10_promoPeaks.bed",
-        distalBed = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p10_distalPeaks.bed"
+        annot = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".annot",
+        promo_bed_targets = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoTargets.bed",
+        promoTargets = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoTargets.txt",
+        promoBed = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoPeaks.bed",
+        distalBed = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_distalPeaks.bed"
     params:
         before = config["promoter"]["bTSS"],
         after = config["promoter"]["aTSS"]
@@ -306,7 +314,7 @@ rule bam2bigwig_spike:
 rule GC_bias:
     input: 
         bam = "02aln/{sample}.bam",
-        bed = "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p10.bed"
+        bed = rules.filter_peaks.output.bed_filt
     output: 
         pdf = "07gcBias/{sample}_{control}-input_GCbias.pdf",
         freq_txt = "07gcBias/{sample}_{control}-input_GCbias.txt"

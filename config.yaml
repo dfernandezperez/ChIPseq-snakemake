@@ -7,6 +7,8 @@ macs2:
   gsize: mm
   pvalue: 1e-5
   pvalue_broad: 1e-5
+  # -log10 pvalue for peak filtering -corresponds to the 8th column of the narrowPeak file. Default 10-
+  filt_peaks_pval: "10"
 
 # json files
 samples: samples.txt
@@ -28,7 +30,6 @@ genome:
   chr_sizes: /hpcnfs/scratch/DP/sjammula/mm9/mm9.chrom.sizes
   # https://deeptools.readthedocs.io/en/latest/content/feature/effectiveGenomeSize.html
   egenome_size: 2304947926
-
 
 # Bam2bigwig params
 read_extension: 200
