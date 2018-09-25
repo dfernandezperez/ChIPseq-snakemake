@@ -6,15 +6,15 @@ singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-ChIPseq-software-maste
 #######################################################################################################################
 configfile: "config.yaml"
 CLUSTER = json.load(open(config['CLUSTER_JSON']))
-FILES = pd.read_table(config['samples']).set_index("NAME", drop=False)
+SAMPLES = pd.read_table(config['samples']).set_index("NAME", drop=False)
 
 #######################################################################################################################
 ### Process a little bit the input files. Check if there are samples with spike-in and define all the target output files
 #######################################################################################################################
-ALL_SAMPLES = FILES.NAME
+ALL_SAMPLES = SAMPLES.NAME
 # create 2 lists, one containing the samples with spike in and the other without spike-in
-NOSPIKE_SAMPLES = list( FILES[FILES.SPIKE == False].NAME )
-SPIKE_SAMPLES = list( FILES[FILES.SPIKE == True].NAME )
+NOSPIKE_SAMPLES = list( SAMPLES[SAMPLES.SPIKE == False].NAME )
+SPIKE_SAMPLES = list( SAMPLES[SAMPLES.SPIKE == True].NAME )
 
 # Now, create the path of the fastq files that will be used as input by bowtie for all samples
 # Finally, create a dictionary that has as keys the sampleName and as values the fastq paths.
@@ -35,7 +35,7 @@ NOSPIKE_BAM = dict(zip(NOSPIKE_SAMPLES, NOSPIKE_BAM))
 ### DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE
 #######################################################################################################################
 # Get the names of the input files for calling peak and creating bigwig files
-CONTROLS = FILES.INPUT
+CONTROLS = SAMPLES.INPUT
 
 ALL_FASTQC = expand("01fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
 ALL_BAM = expand("02aln/{sample}.bam", sample = ALL_SAMPLES)
@@ -59,7 +59,7 @@ rule all:
 #######################################################################################################################
 ## get a list of fastq.gz files for each sample
 def get_fastq(wildcards):
-    return FILES.FASTQ[wildcards.sample]
+    return SAMPLES.FASTQ[wildcards.sample]
 
 rule merge_fastqs:
     input: 
@@ -212,9 +212,12 @@ rule filter_peaks:
         rules.call_peaks.output.narrowPeak
     output:
         bed_filt = "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".bed",
+
+    params:
+        pval_filt = config["macs2"]["filt_peaks_pval"]
     shell:
         """
-        awk "\$8>=10" {input} | cut -f1-4,8 > {output.bed_filt}
+        awk "\$8 >= {params.pval_filt}" {input} | cut -f1-4,8 > {output.bed_filt}
         """
 
 rule phantom_peak_qual:
