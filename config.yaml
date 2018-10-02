@@ -1,5 +1,5 @@
 # Bowtie indexes
-idx_bt1_mm: /hpcnfs/techunits/bioinformatics/db/bowtie/mm9/mm9
+idx_bt1_mm: /hpcnfs/techunits/bioinformatics/refdata/Mus_musculus/UCSC/mm9/Sequence/BowtieIndex/genome
 idx_bt1_dm: /hpcnfs/data/DP/dm6/dm6
 
 # MACS2 parameters
@@ -8,7 +8,7 @@ macs2:
   pvalue: 1e-5
   pvalue_broad: 1e-5
   # -log10 pvalue for peak filtering -corresponds to the 8th column of the narrowPeak file. Default 10-
-  filt_peaks_pval: "10"
+  filt_peaks_pval: "5"
 
 # json files
 samples: samples.txt
@@ -27,8 +27,10 @@ genome:
   # Used in computeGCbias to ignore repetitive regions in the calculation
   rep_masker: /hpcnfs/data/DP/Databases/RepeatMasker_noRandom.bed
   # File required by bdg2bigwig from ucsc
-  chr_sizes: /hpcnfs/scratch/DP/sjammula/mm9/mm9.chrom.sizes
+  chr_sizes: /hpcnfs/data/DP/Databases/mm9.chrom.sizes
   # https://deeptools.readthedocs.io/en/latest/content/feature/effectiveGenomeSize.html
+  # 2304947926 --> mm9
+  # 2308125349 --> mm10
   egenome_size: 2304947926
 
 # Bam2bigwig params

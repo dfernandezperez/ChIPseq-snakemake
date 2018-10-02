@@ -1,23 +1,20 @@
 # Usage --> input.bed output.txt distanceBeforeTSS distanceAfterTSS
 require(dplyr)
 
-
 ####################                                                                                                              
 # DEFINE FUNCTIONS #                                                                                              
 ####################
 
 # Function to annotate the peaks using ChIPseeker
-Peak_Annot <- function(infile, tssRegion = c(-2500, 2500)) {
+Peak_Annot <- function(infile, tssRegion = c(-2500, 2500), TxDb, annoDb) {
   
   # Load packages and set parameters
   require(ChIPseeker)
-  require(TxDb.Mmusculus.UCSC.mm9.knownGene)
-  txdb <- TxDb.Mmusculus.UCSC.mm9.knownGene
-  
+  require(TxDb, character.only = TRUE)  
   
   # read file and annotate peaks
   df <- readPeakFile(infile)
-  annot <- annotatePeak(df, TxDb=txdb, annoDb="org.Mm.eg.db", tssRegion = tssRegion)
+  annot <- annotatePeak(df, TxDb = get(TxDb), annoDb = annoDb, tssRegion = tssRegion)
   
   # The program classifies promotres in 1kb, 2kb... this line removes that annotation and leaves just "Promoters"
   annot@anno$annotation <- sub(" \\(.*\\)", "", annot@anno$annotation)
@@ -27,12 +24,11 @@ Peak_Annot <- function(infile, tssRegion = c(-2500, 2500)) {
   return(final)
 }
 
-args = commandArgs(trailingOnly=TRUE)
-
-
 #################
 ## Read inputs ##
 #################
+args = commandArgs(trailingOnly=TRUE)
+
 input <- args[1]
 before <- as.numeric(args[2])
 after <- as.numeric(args[3])
@@ -41,11 +37,27 @@ out2 <- args[5]
 out3 <- args[6]
 out4 <- args[7]
 out5 <- args[8]
+genome <- args[9]
+
+#------------ Define the genome that is going to be used for the annotation of peaks (to add more genomes they need to be first installed in R) ------------
+if (genome == "mm9") { 
+  txdb <- "TxDb.Mmusculus.UCSC.mm9.knownGene"
+  annodb <- "org.Mm.eg.db"
+} else if (genome == "mm10") {
+  txdb <- "TxDb.Mmusculus.UCSC.mm9.knownGene"
+  annodb <- "org.Mm.eg.db"
+} else if  (genome == "hg18") {
+  txdb <- "TxDb.Hsapiens.UCSC.hg18.knownGene"
+  annodb <- "org.Hs.eg.db"
+} else if  (genome == "hg19") {
+  txdb <- "TxDb.Hsapiens.UCSC.hg19.knownGene"
+  annodb <- "org.Hs.eg.db"
+}
 
 ####################
 ## Annot bed file ##
 ####################
-annot <- Peak_Annot(input, tssRegion = c(-before, after)) %>% as.data.frame()
+annot <- Peak_Annot(input, tssRegion = c(-before, after), TxDb = txdb, annoDb = annodb) %>% as.data.frame()
 
 # Filter annotared bed file to obtain promoter target genes, bed files from peaks overlaping with promoters/distal regions and the coordinates of the promoter target genes.
 distal.peaks <- annot %>% subset(annotation != "Promoter") %>% dplyr::select(c("seqnames", "start", "end", "V4", "V5")) 
@@ -55,7 +67,6 @@ promo.targets.bed <-  annot %>% subset(annotation == "Promoter") %>%
   mutate(geneStrand = replace(geneStrand, geneStrand == 1, "+")) %>%
   mutate(geneStrand = replace(geneStrand, geneStrand == 2, "-")) %>% unique()
 promo.targets <- annot %>% subset(annotation == "Promoter") %>% dplyr::select("SYMBOL") %>% unique()
-
 
 ##################
 ## Write output ##

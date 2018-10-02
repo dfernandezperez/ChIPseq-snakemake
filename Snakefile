@@ -1,5 +1,5 @@
 import pandas as pd
-singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-ChIPseq-software-master-test.simg"
+singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-ChIPseq-software-master-latest.simg"
 
 #######################################################################################################################
 ### Load sample sheet and cluster configuration, config file
@@ -9,34 +9,14 @@ CLUSTER = json.load(open(config['CLUSTER_JSON']))
 SAMPLES = pd.read_table(config['samples']).set_index("NAME", drop=False)
 
 #######################################################################################################################
-### Process a little bit the input files. Check if there are samples with spike-in and define all the target output files
-#######################################################################################################################
-ALL_SAMPLES = SAMPLES.NAME
-# create 2 lists, one containing the samples with spike in and the other without spike-in
-NOSPIKE_SAMPLES = list( SAMPLES[SAMPLES.SPIKE == False].NAME )
-SPIKE_SAMPLES = list( SAMPLES[SAMPLES.SPIKE == True].NAME )
-
-# Now, create the path of the fastq files that will be used as input by bowtie for all samples
-# Finally, create a dictionary that has as keys the sampleName and as values the fastq paths.
-#This way then we can acess to each fastq by using the sample name
-SPIKE_FASTQ = expand("fastq/{sample}.fastq", sample = SPIKE_SAMPLES)
-NOSPIKE_FASTQ = expand("fastq/{sample}.fastq", sample = NOSPIKE_SAMPLES)
-SPIKE_FASTQ = dict(zip(SPIKE_SAMPLES, SPIKE_FASTQ))
-NOSPIKE_FASTQ = dict(zip(NOSPIKE_SAMPLES, NOSPIKE_FASTQ))
-
-# Do the same but for the bam files, that will be used for the bigwig creation (spike in have to be normalized in a diff way)
-SPIKE_BAM = expand("02aln/{sample}.bam", sample = SPIKE_SAMPLES)
-NOSPIKE_BAM = expand("02aln/{sample}.bam", sample = NOSPIKE_SAMPLES)
-SPIKE_BAM = dict(zip(SPIKE_SAMPLES, SPIKE_BAM))
-NOSPIKE_BAM = dict(zip(NOSPIKE_SAMPLES, NOSPIKE_BAM))
-
-
-#######################################################################################################################
 ### DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE
 #######################################################################################################################
-# Get the names of the input files for calling peak and creating bigwig files
+# Get the names of the input files and genome version for calling peak and creating bigwig files
+ALL_SAMPLES = SAMPLES.NAME
 CONTROLS = SAMPLES.INPUT
+CONTROLS_G = SAMPLES.GENOME
 
+ALL_CONTROLS = expand("/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam", genome = CONTROLS_G, control = CONTROLS)
 ALL_FASTQC = expand("01fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
 ALL_BAM = expand("02aln/{sample}.bam", sample = ALL_SAMPLES)
 ALL_FLAGSTAT = expand("02aln/{sample}.bam.flagstat", sample = ALL_SAMPLES)
@@ -44,26 +24,26 @@ ALL_PEAKS = expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowP
 ALL_PHANTOM = expand("04phantompeakqual/{sample}_phantom.txt", sample = ALL_SAMPLES)
 ALL_PEAKANNOT = expand("05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".annot", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_BIGWIG = expand( "06bigwig/{sample}_{control}-input.bw", zip, sample=ALL_SAMPLES, control=CONTROLS)
-ALL_GCBIAS = expand("07gcBias/{sample}_{control}-input_GCbias.pdf", zip, sample=ALL_SAMPLES, control=CONTROLS)
+ALL_GCBIAS = expand("07gcBias/{sample}_{control}-input_GCbias.pdf", zip, sample=ALL_SAMPLES, control=CONTROLS) 
 ALL_QC = ["10multiQC/multiQC_log.html"]
+
 
 #######################################################################################################################
 ### DEFINE LOCAL RULES TO RUN THE WHOLE PIPELINE OR JUST A SUBSET OF IT
 #######################################################################################################################
-localrules: all
+localrules: all, all_pannot
 rule all:
-    input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_PEAKANNOT + ALL_QC + ALL_GCBIAS
+    input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT
+
+rule all_pannot:
+    input: ALL_PEAKANNOT
     
 #######################################################################################################################
 ### FASTQC, ALIGNMENT + DEDUP + SABM2BAM SORTED, INDEX BAM
 #######################################################################################################################
-## get a list of fastq.gz files for each sample
-def get_fastq(wildcards):
-    return SAMPLES.FASTQ[wildcards.sample]
-
 rule merge_fastqs:
     input: 
-        get_fastq
+        lambda wildcards: SAMPLES.FASTQ[wildcards.sample]
     output: 
         temp("fastq/{sample}.fastq")
     log: 
@@ -101,9 +81,10 @@ rule fastqc:
 # samblaster should run before samtools sort
 rule align:
     input:
-        lambda wildcards: NOSPIKE_FASTQ[wildcards.sample]
+        lambda wildcards: 
+            str("fastq/" + wildcards.sample + ".fastq") if SAMPLES.SPIKE[wildcards.sample] == False else str()
     output:
-        temp("02aln/{sample}.bam")
+        "02aln/{sample}.bam"
     threads:
         CLUSTER["align"]["cpu"]
     params:
@@ -125,7 +106,8 @@ rule align:
 
 rule align_spike:
     input:
-        lambda wildcards: SPIKE_FASTQ[wildcards.sample]
+        lambda wildcards: 
+            str("fastq/" + wildcards.sample + ".fastq") if SAMPLES.SPIKE[wildcards.sample] == True else str()
     output:
         mm = temp("02aln/{sample}.bam"),
         dm = "02aln_dm/{sample}_dm.bam"
@@ -147,17 +129,14 @@ rule align_spike:
         | samtools view -Sb -F 4 - \
         | samtools sort -m 2G -@ {threads} -T {output.mm}.tmp -o {output.mm} - 2> {log.sort_index}
         samtools index {output.mm} 2>> {log.sort_index}
-
         bowtie -p {threads} {params.bowtie_dm} -q {input} 2> {log.bowtie[1]} \
         | samblaster --removeDups 2> {log.markdup} \
         | samtools view -Sb -F 4 - \
         | samtools sort -m 2G -@ {threads} -T {output.dm}.tmp -o {output.dm} - 2>> {log.sort_index}
         samtools index {output.dm} 2>> {log.sort_index}
-
         python scripts/remove_spikeDups.py {output.mm} {output.dm}
         
         mv {output.mm}.clean {output.mm}; mv {output.dm}.clean {output.dm}
-
         samtools index {output.mm}; samtools index {output.dm}
         """
 
@@ -182,7 +161,7 @@ rule flagstat_bam:
 rule call_peaks:
     input: 
         case = "02aln/{sample}.bam", 
-        reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
+        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/" + SAMPLES.GENOME[wildcards.sample] + "/input_" + wildcards.control + ".bam",
     output: 
         narrowPeak = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak",
         bdg = temp("03peak_macs2/{sample}_{control}-input/{sample}_treat_pileup.bdg"),
@@ -241,7 +220,7 @@ rule phantom_peak_qual:
 
 rule peakAnnot:
     input :
-        rules.filter_peaks.output.bed_filt
+        rules.filter_peaks.output.bed_filt,
     output:
         annot = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".annot",
         promo_bed_targets = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoTargets.bed",
@@ -250,7 +229,8 @@ rule peakAnnot:
         distalBed = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_distalPeaks.bed"
     params:
         before = config["promoter"]["bTSS"],
-        after = config["promoter"]["aTSS"]
+        after = config["promoter"]["aTSS"],
+        genome = lambda wildcards: SAMPLES.GENOME[wildcards.sample]
     log: 
         "00log/{sample}_{control}-input_peakanot"
     message:
@@ -258,7 +238,7 @@ rule peakAnnot:
     shell:
         """
         /usr/local/bin/Rscript scripts/PeakAnnot.R {input} {params.before} {params.after}   \
-            {output.annot} {output.promo_bed_targets} {output.promoTargets} {output.promoBed} {output.distalBed}
+            {output.annot} {output.promo_bed_targets} {output.promoTargets} {output.promoBed} {output.distalBed} {params.genome}
         """
 
 #######################################################################################################################
@@ -266,8 +246,8 @@ rule peakAnnot:
 #######################################################################################################################
 rule bam2bigwig:
     input: 
-        case = lambda wildcards: NOSPIKE_BAM[wildcards.sample],
-        reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
+        case = lambda wildcards: str("02aln/" + wildcards.sample + ".bam") if SAMPLES.SPIKE[wildcards.sample] == False else str(),
+        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/" + SAMPLES.GENOME[wildcards.sample] + "/input_" + wildcards.control + ".bam",
     output:  
         "06bigwig/{sample}_{control}-input.bw"
     params: 
@@ -289,9 +269,9 @@ rule bam2bigwig:
 
 rule bam2bigwig_spike:
     input: 
-        case = lambda wildcards: SPIKE_BAM[wildcards.sample],
-        dm = "02aln_dm/{sample}_dm.bam",
-        reference = "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/input_{control}.bam"
+        case = lambda wildcards: str("02aln/" + wildcards.sample + ".bam") if SAMPLES.SPIKE[wildcards.sample] == True else str(),
+        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/" + SAMPLES.GENOME[wildcards.sample] + "/input_" + wildcards.control + ".bam",
+        dm = "02aln_dm/{sample}_dm.bam"
     output:
         "06bigwig/{sample}_{control}-input.bw"
     params:
