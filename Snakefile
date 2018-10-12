@@ -37,7 +37,7 @@ rule all:
     input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT
 
 rule all_server:
-    input: ALL_BW2SERVER
+    input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT + ALL_BW2SERVER
 
 rule all_pannot:
     input: ALL_PEAKANNOT
@@ -310,7 +310,7 @@ rule bigwig2server:
         antibody = lambda wildcards:  SAMPLES.AB[wildcards.sample],
         genome = lambda wildcards:  SAMPLES.GENOME[wildcards.sample],
         run = lambda wildcards:  SAMPLES.RUN[wildcards.sample],
-        chip = lambda wildcards: str("ChIPseq") if SAMPLES.SPIKE[wildcards.sample] == False else str("ChIPseqSpike")
+        chip = lambda wildcards: str("ChIPseq") if SAMPLES.SPIKE[wildcards.sample] == False else str("ChIPseqSpike"),
         n_reads = "$(cut -d" " -f1 {input.flagstat} | head -n1)"
     shell:
         """
