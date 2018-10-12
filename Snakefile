@@ -26,17 +26,24 @@ ALL_PEAKANNOT = expand("05peak_annot/{sample}_{control}-input/{sample}_peaks_p" 
 ALL_BIGWIG = expand( "06bigwig/{sample}_{control}-input.bw", zip, sample=ALL_SAMPLES, control=CONTROLS)
 ALL_GCBIAS = expand("07gcBias/{sample}_{control}-input_GCbias.pdf", zip, sample=ALL_SAMPLES, control=CONTROLS) 
 ALL_QC = ["10multiQC/multiQC_log.html"]
-
+ALL_BW2SERVER = expand("temp_file_{sample}_{control}.txt",  zip, sample=ALL_SAMPLES, control=CONTROLS)
 
 #######################################################################################################################
 ### DEFINE LOCAL RULES TO RUN THE WHOLE PIPELINE OR JUST A SUBSET OF IT
 #######################################################################################################################
-localrules: all, all_pannot
+localrules: all, all_server, all_pannot
+
 rule all:
     input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT
 
+rule all_server:
+    input: ALL_BW2SERVER
+
 rule all_pannot:
     input: ALL_PEAKANNOT
+
+rule all_peak_calling:
+    input: ALL_PEAKS
     
 #######################################################################################################################
 ### FASTQC, ALIGNMENT + DEDUP + SABM2BAM SORTED, INDEX BAM
@@ -163,14 +170,12 @@ rule call_peaks:
         case = "02aln/{sample}.bam", 
         reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/" + SAMPLES.GENOME[wildcards.sample] + "/input_" + wildcards.control + ".bam",
     output: 
-        narrowPeak = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak",
-        bdg = temp("03peak_macs2/{sample}_{control}-input/{sample}_treat_pileup.bdg"),
-        bdg_lambda = temp("03peak_macs2/{sample}_{control}-input/{sample}_control_lambda.bdg")
+        narrowPeak = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak"
     log:
         "00log/{sample}_{control}-input_macs2.log"
     params:
         out_dir = "03peak_macs2/{sample}_{control}-input",
-        macs2_params = "--keep-dup all --format BAM --nomodel --bdg",
+        macs2_params = "--keep-dup all --format BAM --nomodel -m 10 30",
         pvalue = config["macs2"]["pvalue"],
         gsize = config["macs2"]["gsize"]
     message: 
@@ -294,6 +299,26 @@ rule bam2bigwig_spike:
         --threads {threads} 2> {log}
         """
 
+rule bigwig2server:
+    input: 
+        bw = "06bigwig/{sample}_{control}-input.bw",
+        flagstat = "02aln/{sample}.bam.flagstat"
+    output:
+        temp("temp_file_{sample}_{control}.txt")
+    params:
+        user = lambda wildcards: SAMPLES.USER[wildcards.sample],
+        antibody = lambda wildcards:  SAMPLES.AB[wildcards.sample],
+        genome = lambda wildcards:  SAMPLES.GENOME[wildcards.sample],
+        run = lambda wildcards:  SAMPLES.RUN[wildcards.sample],
+        chip = lambda wildcards: str("ChIPseq") if SAMPLES.SPIKE[wildcards.sample] == False else str("ChIPseqSpike")
+        n_reads = "$(cut -d" " -f1 {input.flagstat} | head -n1)"
+    shell:
+        """
+        nreads={params.n_reads}
+        cp {input.bw} /hpcnfs/data/DP/UCSC_tracks/Data/bigWig/{wildcards.sample}_{wildcards.control}_{params.user}_${{nreads}}_{params.chip}_{params.antibody}_{params.genome}_{params.run}.bigWig
+        touch {output}
+        """
+
 rule GC_bias:
     input: 
         bam = "02aln/{sample}.bam",
@@ -315,9 +340,12 @@ rule GC_bias:
     shell:
         """
         bedops -u {input.bed} {params.repeatMasker} > {params.tempBed}
+        bp_peaks=$(bedops --merge {input.bed} | bedmap --bases - | awk "{{sum+=\$1}}END{{print sum}}")
+        total_eGsize=$(({params.egenome_size}-$bp_peaks))
+
         computeGCBias -b {input.bam} \
             -p {threads} \
-            --effectiveGenomeSize {params.egenome_size} \
+            --effectiveGenomeSize $total_eGsize \
             -g {params.bit_file} \
             -l 200 \
             -bl {params.tempBed} \

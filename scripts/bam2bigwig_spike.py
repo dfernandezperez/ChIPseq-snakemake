@@ -57,7 +57,7 @@ sampleNorm2spikeNorm = str( (1.0/float(case_norm))*float(dm_norm) )
 #############################
 ## Bash commands to launch ##
 #############################
-bamCompare = "bamCompare -b1 " + case + " -b2 " + reference + " -o " + bw + " -bs 50 --operation subtract --scaleFactors " + case_norm + ":" + reference_norm + " -p " + threads + " --extendReads " + e_reads
+bamCompare = "bamCompare -b1 " + case + " -b2 " + reference + " -o " + bw + " --operation subtract --scaleFactors " + case_norm + ":" + reference_norm + " -p " + threads + " --extendReads " + e_reads
 
 wiggleTools = "wiggletools write_bg " + bdg + " scale " + sampleNorm2spikeNorm + " " + bw
 
