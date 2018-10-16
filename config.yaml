@@ -7,8 +7,8 @@ macs2:
   gsize: mm
   pvalue: 1e-5
   pvalue_broad: 1e-5
-  # -log10 pvalue for peak filtering -corresponds to the 8th column of the narrowPeak file. Default 10-
-  filt_peaks_pval: "5"
+  # -log10 pvalue for peak filtering -corresponds to the 8th column of the narrowPeak file. Default 10.
+  filt_peaks_pval: "10"
 
 # json files
 samples: samples.txt
@@ -25,7 +25,7 @@ genome:
   # File required by computeGCbias from deeptools
   2bit: /hpcnfs/data/DP/Databases/mm9.2bit
   # Used in computeGCbias to ignore repetitive regions in the calculation
-  rep_masker: /hpcnfs/data/DP/Databases/RepeatMasker_noRandom.bed
+  rep_masker: /hpcnfs/data/DP/Databases/RepeatMasker_noRandom_mm9.bed
   # File required by bdg2bigwig from ucsc
   chr_sizes: /hpcnfs/data/DP/Databases/mm9.chrom.sizes
   # https://deeptools.readthedocs.io/en/latest/content/feature/effectiveGenomeSize.html

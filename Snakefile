@@ -1,5 +1,5 @@
 import pandas as pd
-singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-ChIPseq-software-master-latest.simg"
+singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-bioinformatics-singularity-master-chipseq.simg"
 
 #######################################################################################################################
 ### Load sample sheet and cluster configuration, config file
@@ -40,7 +40,7 @@ rule all_server:
     input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT + ALL_BW2SERVER
 
 rule all_pannot:
-    input: ALL_PEAKANNOT
+    input: ALL_PEAKANNOT + ALL_PHANTOM
 
 rule all_peak_calling:
     input: ALL_PEAKS
@@ -219,7 +219,7 @@ rule phantom_peak_qual:
         "Running phantompeakqual for {wildcards.sample}"
     shell:
         """
-        Rscript  scripts/run_spp_nodups.R \
+        /opt/miniconda2/bin/Rscript --vanilla scripts/run_spp_nodups.R \
         -c={input[0]} -savp -rf -p={threads} -odir={params.out_dir}  -out={output} -tmpdir={params.out_dir}  2> {log}
         """
 
@@ -242,7 +242,7 @@ rule peakAnnot:
         "Annotating peaks for {wildcards.sample}"
     shell:
         """
-        /usr/local/bin/Rscript scripts/PeakAnnot.R {input} {params.before} {params.after}   \
+        Rscript --vanilla scripts/PeakAnnot.R {input} {params.before} {params.after}   \
             {output.annot} {output.promo_bed_targets} {output.promoTargets} {output.promoBed} {output.distalBed} {params.genome}
         """
 
