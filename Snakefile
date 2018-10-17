@@ -31,7 +31,7 @@ ALL_BW2SERVER = expand("temp_file_{sample}_{control}.txt",  zip, sample=ALL_SAMP
 #######################################################################################################################
 ### DEFINE LOCAL RULES TO RUN THE WHOLE PIPELINE OR JUST A SUBSET OF IT
 #######################################################################################################################
-localrules: all, all_server, all_pannot
+localrules: all, all_server, all_pannot, all_peak_calling, all_fastqc
 
 rule all:
     input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT
@@ -44,7 +44,10 @@ rule all_pannot:
 
 rule all_peak_calling:
     input: ALL_PEAKS
-    
+
+rule all_fastqc:
+    input: ALL_FASTQC
+
 #######################################################################################################################
 ### FASTQC, ALIGNMENT + DEDUP + SABM2BAM SORTED, INDEX BAM
 #######################################################################################################################
@@ -61,10 +64,17 @@ rule merge_fastqs:
         fastp = "/hpcnfs/data/DP/software/fastp", 
         fastp_params = "-j 00log/{sample}_fastp.json -h 00log/{sample}_fastp.html --stdin -t 1 -A -Q -L "
     message: 
-        "merging fastq files {input}/*.fastq.gz into {output}"
+        "merging fastq files {input} into {output}"
     shell:
         """
-        zcat {input}/*fastq.gz | {params.fastp} -o {output} -w {threads} {params.fastp_params} 2> {log}
+        file={input}
+        if [ ${{file: -8}} == "fastq.gz" ]
+        then
+            fastq={input}
+        else
+            fastq={input}/*fastq.gz
+        fi
+        zcat $fastq | {params.fastp} -o {output} -w {threads} {params.fastp_params} 2> {log}
         rm 00log/{wildcards.sample}_fastp.json 00log/{wildcards.sample}_fastp.html
         """
 
