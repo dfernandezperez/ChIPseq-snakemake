@@ -31,9 +31,12 @@ ALL_BW2SERVER = expand("temp_file_{sample}_{control}.txt",  zip, sample=ALL_SAMP
 #######################################################################################################################
 ### DEFINE LOCAL RULES TO RUN THE WHOLE PIPELINE OR JUST A SUBSET OF IT
 #######################################################################################################################
-localrules: all, all_server, all_pannot, all_peak_calling, all_fastqc
+localrules: all, all_server, all_pannot, all_peak_calling, all_fastqc, all_bigwig, all_noGC
 
 rule all:
+    input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT
+
+rule all_noGC:
     input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT
 
 rule all_server:
@@ -47,6 +50,9 @@ rule all_peak_calling:
 
 rule all_fastqc:
     input: ALL_FASTQC
+
+rule all_bigwig:
+    input: ALL_BIGWIG
 
 #######################################################################################################################
 ### FASTQC, ALIGNMENT + DEDUP + SABM2BAM SORTED, INDEX BAM
