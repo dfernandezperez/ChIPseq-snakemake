@@ -37,7 +37,7 @@ rule all:
     input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT
 
 rule all_noGC:
-    input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT
+    input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_PEAKANNOT
 
 rule all_server:
     input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT + ALL_BW2SERVER
@@ -132,7 +132,7 @@ rule align_spike:
         lambda wildcards: 
             str("fastq/" + wildcards.sample + ".fastq") if SAMPLES.SPIKE[wildcards.sample] == True else str()
     output:
-        mm = temp("02aln/{sample}.bam"),
+        mm = "02aln/{sample}.bam",
         dm = "02aln_dm/{sample}_dm.bam"
     threads:
         CLUSTER["align"]["cpu"]
