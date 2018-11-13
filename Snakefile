@@ -13,19 +13,19 @@ SAMPLES = pd.read_table(config['samples']).set_index("NAME", drop=False)
 #######################################################################################################################
 # Get the names of the input files and genome version for calling peak and creating bigwig files
 ALL_SAMPLES = SAMPLES.NAME
-CONTROLS = SAMPLES.INPUT
-CONTROLS_G = SAMPLES.GENOME
+CONTROLS    = SAMPLES.INPUT
+CONTROLS_G  = SAMPLES.GENOME
 
-ALL_CONTROLS = expand("/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam", genome = CONTROLS_G, control = CONTROLS)
-ALL_FASTQC = expand("01fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
-ALL_BAM = expand("02aln/{sample}.bam", sample = ALL_SAMPLES)
-ALL_FLAGSTAT = expand("02aln/{sample}.bam.flagstat", sample = ALL_SAMPLES)
-ALL_PEAKS = expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak", zip, sample=ALL_SAMPLES, control=CONTROLS)
-ALL_PHANTOM = expand("04phantompeakqual/{sample}_phantom.txt", sample = ALL_SAMPLES)
+ALL_CONTROLS  = expand("/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam", genome = CONTROLS_G, control = CONTROLS)
+ALL_FASTQC    = expand("01fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES)
+ALL_BAM       = expand("02aln/{sample}.bam", sample = ALL_SAMPLES)
+ALL_FLAGSTAT  = expand("02aln/{sample}.bam.flagstat", sample = ALL_SAMPLES)
+ALL_PEAKS     = expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak", zip, sample=ALL_SAMPLES, control=CONTROLS)
+ALL_PHANTOM   = expand("04phantompeakqual/{sample}_phantom.txt", sample = ALL_SAMPLES)
 ALL_PEAKANNOT = expand("05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".annot", zip, sample=ALL_SAMPLES, control=CONTROLS)
-ALL_BIGWIG = expand( "06bigwig/{sample}_{control}-input.bw", zip, sample=ALL_SAMPLES, control=CONTROLS)
-ALL_GCBIAS = expand("07gcBias/{sample}_{control}-input_GCbias.pdf", zip, sample=ALL_SAMPLES, control=CONTROLS) 
-ALL_QC = ["10multiQC/multiQC_log.html"]
+ALL_BIGWIG    = expand( "06bigwig/{sample}_{control}-input.bw", zip, sample=ALL_SAMPLES, control=CONTROLS)
+ALL_GCBIAS    = expand("07gcBias/{sample}_{control}-input_GCbias.pdf", zip, sample=ALL_SAMPLES, control=CONTROLS)
+ALL_QC        = ["10multiQC/multiQC_log.html"]
 ALL_BW2SERVER = expand("temp_file_{sample}_{control}.txt",  zip, sample=ALL_SAMPLES, control=CONTROLS)
 
 #######################################################################################################################
@@ -67,10 +67,12 @@ rule merge_fastqs:
     threads: 
         CLUSTER["merge_fastqs"]["cpu"]
     params: 
-        fastp = "/hpcnfs/data/DP/software/fastp", 
+        fastp        = "/hpcnfs/data/DP/software/fastp",
         fastp_params = "-j 00log/{sample}_fastp.json -h 00log/{sample}_fastp.html --stdin -t 1 -A -Q -L "
     message: 
         "merging fastq files {input} into {output}"
+    benchmark:
+        ".benchmarks/{sample}.merge_fastqs.benchmark.txt"
     shell:
         """
         file={input}
@@ -95,6 +97,8 @@ rule fastqc:
         CLUSTER["fastqc"]["cpu"]
     message: 
         "Running fastqc for {input}"
+    benchmark:
+        ".benchmarks/{sample}.fastqc.benchmark.txt"
     shell:
         """
         fastqc -o 01fqc -f fastq -t {threads} --noextract {input} 2> {log}
@@ -115,9 +119,11 @@ rule align:
     message:
         "Aligning {input} with parameters {params.bowtie}"
     log:
-        bowtie = "00log/{sample}.align",
-        markdup = "00log/{sample}.markdup",
+        bowtie     = "00log/{sample}.align",
+        markdup    = "00log/{sample}.markdup",
         sort_index = "00log/{sample}.sortIndex_bam"
+    benchmark:
+        ".benchmarks/{sample}.align.benchmark.txt"
     shell:
         """
         bowtie -p {threads} {params.bowtie} -q {input} 2> {log.bowtie} \
@@ -142,9 +148,11 @@ rule align_spike:
     message:
         "Aligning {input} with parameters {params.bowtie_mm}"
     log:
-        bowtie = ["00log/{sample}.align", "00log/{sample}.dm_align"],
-        markdup = "00log/{sample}.markdup",
+        bowtie     = ["00log/{sample}.align", "00log/{sample}.dm_align"],
+        markdup    = "00log/{sample}.markdup",
         sort_index = "00log/{sample}.sortIndex_bam"
+    benchmark:
+        ".benchmarks/{sample}.align-spike.benchmark.txt"
     shell:
         """
         bowtie -p {threads} {params.bowtie_mm} -q {input} 2> {log.bowtie[0]} \
@@ -173,6 +181,8 @@ rule flagstat_bam:
         "00log/{sample}.flagstat_bam"
     message: 
         "flagstat_bam {input}"
+    benchmark:
+        ".benchmarks/{sample}.flagstat.benchmark.txt"
     shell:
         """
         samtools flagstat {input} > {output} 2> {log}
@@ -183,19 +193,21 @@ rule flagstat_bam:
 #######################################################################################################################
 rule call_peaks:
     input: 
-        case = "02aln/{sample}.bam", 
+        case      = "02aln/{sample}.bam",
         reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/" + SAMPLES.GENOME[wildcards.sample] + "/input_" + wildcards.control + ".bam",
     output: 
         narrowPeak = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak"
     log:
         "00log/{sample}_{control}-input_macs2.log"
     params:
-        out_dir = "03peak_macs2/{sample}_{control}-input",
+        out_dir      = "03peak_macs2/{sample}_{control}-input",
         macs2_params = "--keep-dup all --format BAM --nomodel -m 10 30",
-        pvalue = config["macs2"]["pvalue"],
-        gsize = config["macs2"]["gsize"]
+        pvalue       = config["macs2"]["pvalue"],
+        gsize        = config["macs2"]["gsize"]
     message: 
         "call_peaks macs2 with input {input.reference} for sample {input.case}"
+    benchmark:
+        ".benchmarks/{sample}_{control}.callpeaks.benchmark.txt"
     shell:
         """
         macs2 callpeak --treatment {input.case} \
@@ -211,8 +223,7 @@ rule filter_peaks:
     input:
         rules.call_peaks.output.narrowPeak
     output:
-        bed_filt = "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".bed",
-
+        bed_filt = "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".bed"
     params:
         pval_filt = config["macs2"]["filt_peaks_pval"]
     shell:
@@ -233,6 +244,8 @@ rule phantom_peak_qual:
         out_dir = "04phantompeakqual"
     message:
         "Running phantompeakqual for {wildcards.sample}"
+    benchmark:
+        ".benchmarks/{sample}.phantompeakqual.benchmark.txt"
     shell:
         """
         /opt/miniconda2/bin/Rscript --vanilla scripts/run_spp_nodups.R \
@@ -243,14 +256,14 @@ rule peakAnnot:
     input :
         rules.filter_peaks.output.bed_filt,
     output:
-        annot = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".annot",
+        annot             = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".annot",
         promo_bed_targets = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoTargets.bed",
-        promoTargets = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoTargets.txt",
-        promoBed = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoPeaks.bed",
-        distalBed = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_distalPeaks.bed"
+        promoTargets      = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoTargets.txt",
+        promoBed          = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoPeaks.bed",
+        distalBed         = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_distalPeaks.bed"
     params:
         before = config["promoter"]["bTSS"],
-        after = config["promoter"]["aTSS"],
+        after  = config["promoter"]["aTSS"],
         genome = lambda wildcards: SAMPLES.GENOME[wildcards.sample]
     log: 
         "00log/{sample}_{control}-input_peakanot"
@@ -267,7 +280,7 @@ rule peakAnnot:
 #######################################################################################################################
 rule bam2bigwig:
     input: 
-        case = lambda wildcards: str("02aln/" + wildcards.sample + ".bam") if SAMPLES.SPIKE[wildcards.sample] == False else str(),
+        case      = lambda wildcards: str("02aln/" + wildcards.sample + ".bam") if SAMPLES.SPIKE[wildcards.sample] == False else str(),
         reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/" + SAMPLES.GENOME[wildcards.sample] + "/input_" + wildcards.control + ".bam",
     output:  
         "06bigwig/{sample}_{control}-input.bw"
@@ -279,6 +292,8 @@ rule bam2bigwig:
         CLUSTER["bam2bigwig"]["cpu"]
     message: 
         "making input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
+    benchmark:
+        ".benchmarks/{sample}_{control}.bam2bw.benchmark.txt"
     shell:
         """
         python scripts/bam2bigwig.py --case {input.case} \
@@ -290,13 +305,13 @@ rule bam2bigwig:
 
 rule bam2bigwig_spike:
     input: 
-        case = lambda wildcards: str("02aln/" + wildcards.sample + ".bam") if SAMPLES.SPIKE[wildcards.sample] == True else str(),
+        case      = lambda wildcards: str("02aln/" + wildcards.sample + ".bam") if SAMPLES.SPIKE[wildcards.sample] == True else str(),
         reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/" + SAMPLES.GENOME[wildcards.sample] + "/input_" + wildcards.control + ".bam",
-        dm = "02aln_dm/{sample}_dm.bam"
+        dm        = "02aln_dm/{sample}_dm.bam"
     output:
         "06bigwig/{sample}_{control}-input.bw"
     params:
-        chr_sizes = config["genome"]["chr_sizes"],
+        chr_sizes  = config["genome"]["chr_sizes"],
         read_exten = config['read_extension']
     log: 
         "00log/{sample}_{control}-input_bigwig.bam2bw"
@@ -304,6 +319,8 @@ rule bam2bigwig_spike:
         CLUSTER["bam2bigwig"]["cpu"]
     message:
         "making spike-normalized input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
+    benchmark:
+        ".benchmarks/{sample}_{control}.bam2bw-spike.benchmark.txt"
     shell:
         """
         python scripts/bam2bigwig_spike.py --case {input.case} \
@@ -317,42 +334,54 @@ rule bam2bigwig_spike:
 
 rule bigwig2server:
     input: 
-        bw = "06bigwig/{sample}_{control}-input.bw",
+        bw       = "06bigwig/{sample}_{control}-input.bw",
         flagstat = "02aln/{sample}.bam.flagstat"
     output:
         temp("temp_file_{sample}_{control}.txt")
     params:
-        user = lambda wildcards: SAMPLES.USER[wildcards.sample],
-        antibody = lambda wildcards:  SAMPLES.AB[wildcards.sample],
-        genome = lambda wildcards:  SAMPLES.GENOME[wildcards.sample],
-        run = lambda wildcards:  SAMPLES.RUN[wildcards.sample],
-        chip = lambda wildcards: str("ChIPseq") if SAMPLES.SPIKE[wildcards.sample] == False else str("ChIPseqSpike"),
-        n_reads = "$(cut -d" " -f1 {input.flagstat} | head -n1)"
-    shell:
-        """
-        nreads={params.n_reads}
-        cp {input.bw} /hpcnfs/data/DP/UCSC_tracks/Data/bigWig/{wildcards.sample}_{wildcards.control}_{params.user}_${{nreads}}_{params.chip}_{params.antibody}_{params.genome}_{params.run}.bigWig
-        touch {output}
-        """
+        user     = lambda wildcards : SAMPLES.USER[wildcards.sample],
+        antibody = lambda wildcards : SAMPLES.AB[wildcards.sample],
+        genome   = lambda wildcards : SAMPLES.GENOME[wildcards.sample],
+        run      = lambda wildcards : SAMPLES.RUN[wildcards.sample],
+        chip     = lambda wildcards : str("ChIPseq") if SAMPLES.SPIKE[wildcards.sample] == False else str("ChIPseqSpike")
+    run:
+        with open (input.flagstat, "r") as f:
+            line         = f.readlines()[4] # fifth line contains the number of mapped reads
+            match_number = re.match(r'(\d.+) \+.+', line)
+            total_reads  = int(match_number.group(1))
+        shell("cp {input} \
+            /hpcnfs/data/DP/UCSC_tracks/Data/bigWig/{sample}_{control}_{user}_{nreads}_{chip}_{antibody}_{genome}_{run}.bigWig".format(
+            input    = input.bw,
+            sample   = wildcards.sample,
+            control  = wildcards.control,
+            user     = params.user,
+            nreads   = total_reads,
+            chip     = params.chip,
+            antibody = params.antibody,
+            genome   = params.genome,
+            run      = params.run))
+        shell("touch {output}".format(output = output))
 
 rule GC_bias:
     input: 
         bam = "02aln/{sample}.bam",
         bed = rules.filter_peaks.output.bed_filt
     output: 
-        pdf = "07gcBias/{sample}_{control}-input_GCbias.pdf",
+        pdf      = "07gcBias/{sample}_{control}-input_GCbias.pdf",
         freq_txt = "07gcBias/{sample}_{control}-input_GCbias.txt"
     log:
         "00log/{sample}_{control}-input_GCbias.log"
     params:
         repeatMasker = config["genome"]['rep_masker'],
-        tempBed = "07gcBias/{sample}_Repeatmasker.bed.tmp",
-        bit_file = config["genome"]["2bit"],
+        tempBed      = "07gcBias/{sample}_Repeatmasker.bed.tmp",
+        bit_file     = config["genome"]["2bit"],
         egenome_size = config["genome"]["egenome_size"]
     threads:
         CLUSTER["GC_bias"]["cpu"]
     message:
         "Computing GC bias for sample {wildcards.sample}"
+    benchmark:
+        ".benchmarks/{sample}_{control}.GCbias.benchmark.txt"
     shell:
         """
         bedops -u {input.bed} {params.repeatMasker} > {params.tempBed}
