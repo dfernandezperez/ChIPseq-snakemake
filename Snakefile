@@ -67,7 +67,6 @@ rule merge_fastqs:
     threads: 
         CLUSTER["merge_fastqs"]["cpu"]
     params: 
-        fastp        = "/hpcnfs/data/DP/software/fastp",
         fastp_params = "-j 00log/{sample}_fastp.json -h 00log/{sample}_fastp.html --stdin -t 1 -A -Q -L "
     message: 
         "merging fastq files {input} into {output}"
@@ -82,7 +81,7 @@ rule merge_fastqs:
         else
             fastq={input}/*fastq.gz
         fi
-        zcat $fastq | {params.fastp} -o {output} -w {threads} {params.fastp_params} 2> {log}
+        zcat $fastq | fastp -o {output} -w {threads} {params.fastp_params} 2> {log}
         rm 00log/{wildcards.sample}_fastp.json 00log/{wildcards.sample}_fastp.html
         """
 
@@ -109,7 +108,7 @@ rule fastqc:
 rule align:
     input:
         lambda wildcards: 
-            str("fastq/" + wildcards.sample + ".fastq") if SAMPLES.SPIKE[wildcards.sample] == False else str()
+            "fastq/{sample}.fastq".format(sample = wildcards.sample) if SAMPLES.SPIKE[wildcards.sample] == False else str()
     output:
         "02aln/{sample}.bam"
     threads:
@@ -136,7 +135,7 @@ rule align:
 rule align_spike:
     input:
         lambda wildcards: 
-            str("fastq/" + wildcards.sample + ".fastq") if SAMPLES.SPIKE[wildcards.sample] == True else str()
+            "fastq/{sample}.fastq".format(sample = wildcards.sample) if SAMPLES.SPIKE[wildcards.sample] == True else str()
     output:
         mm = "02aln/{sample}.bam",
         dm = "02aln_dm/{sample}_dm.bam"
@@ -194,7 +193,9 @@ rule flagstat_bam:
 rule call_peaks:
     input: 
         case      = "02aln/{sample}.bam",
-        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/" + SAMPLES.GENOME[wildcards.sample] + "/input_" + wildcards.control + ".bam",
+        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam".format(
+            genome = SAMPLES.GENOME[wildcards.sample], 
+            control = wildcards.control) 
     output: 
         narrowPeak = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak"
     log:
@@ -223,7 +224,7 @@ rule filter_peaks:
     input:
         rules.call_peaks.output.narrowPeak
     output:
-        bed_filt = "03peak_macs2/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".bed"
+        bed_filt = "03peak_macs2/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}.bed".format(pvalue = config["macs2"]["filt_peaks_pval"])
     params:
         pval_filt = config["macs2"]["filt_peaks_pval"]
     shell:
@@ -256,11 +257,11 @@ rule peakAnnot:
     input :
         rules.filter_peaks.output.bed_filt,
     output:
-        annot             = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + ".annot",
-        promo_bed_targets = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoTargets.bed",
-        promoTargets      = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoTargets.txt",
-        promoBed          = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_promoPeaks.bed",
-        distalBed         = "05peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["macs2"]["filt_peaks_pval"] + "_distalPeaks.bed"
+        annot             = "05peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}.annot".format(pvalue = config["macs2"]["filt_peaks_pval"]),
+        promo_bed_targets = "05peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_promoTargets.bed".format(pvalue = config["macs2"]["filt_peaks_pval"]),
+        promoTargets      = "05peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_promoTargets.txt".format(pvalue = config["macs2"]["filt_peaks_pval"]),
+        promoBed          = "05peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_promoPeaks.bed".format(pvalue = config["macs2"]["filt_peaks_pval"]),
+        distalBed         = "05peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_distalPeaks.bed".format(pvalue = config["macs2"]["filt_peaks_pval"])
     params:
         before = config["promoter"]["bTSS"],
         after  = config["promoter"]["aTSS"],
@@ -280,8 +281,11 @@ rule peakAnnot:
 #######################################################################################################################
 rule bam2bigwig:
     input: 
-        case      = lambda wildcards: str("02aln/" + wildcards.sample + ".bam") if SAMPLES.SPIKE[wildcards.sample] == False else str(),
-        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/" + SAMPLES.GENOME[wildcards.sample] + "/input_" + wildcards.control + ".bam",
+        case      = lambda wildcards: "02aln/{sample}.bam".fomat(
+            sample = wildcards.sample) if SAMPLES.SPIKE[wildcards.sample] == False else str(),
+        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam".format(
+            genome = SAMPLES.GENOME[wildcards.sample], 
+            control = wildcards.control) 
     output:  
         "06bigwig/{sample}_{control}-input.bw"
     params: 
@@ -305,8 +309,11 @@ rule bam2bigwig:
 
 rule bam2bigwig_spike:
     input: 
-        case      = lambda wildcards: str("02aln/" + wildcards.sample + ".bam") if SAMPLES.SPIKE[wildcards.sample] == True else str(),
-        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/" + SAMPLES.GENOME[wildcards.sample] + "/input_" + wildcards.control + ".bam",
+        case      = lambda wildcards: "02aln/{sample}.bam".fomat(
+            sample = wildcards.sample) if SAMPLES.SPIKE[wildcards.sample] == True else str(),
+        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam".format(
+            genome = SAMPLES.GENOME[wildcards.sample], 
+            control = wildcards.control), 
         dm        = "02aln_dm/{sample}_dm.bam"
     output:
         "06bigwig/{sample}_{control}-input.bw"

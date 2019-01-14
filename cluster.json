@@ -22,6 +22,11 @@
         "cpu" : 10,
         "MaxMem" : 40
     },
+        "align_spike":
+    {
+        "cpu" : 10,
+        "MaxMem" : 40
+    },
     "phantom_peak_qual":
     {
 	    "cpu" : 5
