@@ -281,7 +281,7 @@ rule peakAnnot:
 #######################################################################################################################
 rule bam2bigwig:
     input: 
-        case      = lambda wildcards: "02aln/{sample}.bam".fomat(
+        case      = lambda wildcards: "02aln/{sample}.bam".format(
             sample = wildcards.sample) if SAMPLES.SPIKE[wildcards.sample] == False else str(),
         reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam".format(
             genome = SAMPLES.GENOME[wildcards.sample], 
@@ -309,7 +309,7 @@ rule bam2bigwig:
 
 rule bam2bigwig_spike:
     input: 
-        case      = lambda wildcards: "02aln/{sample}.bam".fomat(
+        case      = lambda wildcards: "02aln/{sample}.bam".format(
             sample = wildcards.sample) if SAMPLES.SPIKE[wildcards.sample] == True else str(),
         reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam".format(
             genome = SAMPLES.GENOME[wildcards.sample], 
