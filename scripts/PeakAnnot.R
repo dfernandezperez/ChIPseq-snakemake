@@ -52,6 +52,9 @@ if (genome == "mm9") {
 } else if  (genome == "hg19") {
   txdb <- "TxDb.Hsapiens.UCSC.hg19.knownGene"
   annodb <- "org.Hs.eg.db"
+} else if  (genome == "hg38") {
+  txdb <- "TxDb.Hsapiens.UCSC.hg38.knownGene"
+  annodb <- "org.Hs.eg.db"
 }
 
 ####################
