@@ -40,7 +40,7 @@ rule all_noGC:
     input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_PEAKANNOT
 
 rule all_server:
-    input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_PEAKANNOT + ALL_BW2SERVER
+    input: ALL_FASTQC + ALL_BAM + ALL_FLAGSTAT + ALL_PEAKS + ALL_PHANTOM + ALL_BIGWIG + ALL_QC + ALL_PEAKANNOT + ALL_BW2SERVER
 
 rule all_pannot:
     input: ALL_PEAKANNOT + ALL_PHANTOM
@@ -59,7 +59,7 @@ rule all_bigwig:
 #######################################################################################################################
 rule merge_fastqs:
     input: 
-        lambda wildcards: SAMPLES.FASTQ[wildcards.sample]
+        lambda wildcards: SAMPLES.FASTQ[wildcards.sample].split(" ")
     output: 
         temp("fastq/{sample}.fastq")
     log: 
@@ -74,14 +74,7 @@ rule merge_fastqs:
         ".benchmarks/{sample}.merge_fastqs.benchmark.txt"
     shell:
         """
-        file={input}
-        if [ ${{file: -8}} == "fastq.gz" ]
-        then
-            fastq={input}
-        else
-            fastq={input}/*fastq.gz
-        fi
-        zcat $fastq | fastp -o {output} -w {threads} {params.fastp_params} 2> {log}
+        zcat {input}| fastp -o {output} -w {threads} {params.fastp_params} 2> {log}
         rm 00log/{wildcards.sample}_fastp.json 00log/{wildcards.sample}_fastp.html
         """
 
