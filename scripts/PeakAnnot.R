@@ -44,7 +44,7 @@ if (genome == "mm9") {
   txdb <- "TxDb.Mmusculus.UCSC.mm9.knownGene"
   annodb <- "org.Mm.eg.db"
 } else if (genome == "mm10") {
-  txdb <- "TxDb.Mmusculus.UCSC.mm9.knownGene"
+  txdb <- "TxDb.Mmusculus.UCSC.mm10.knownGene"
   annodb <- "org.Mm.eg.db"
 } else if  (genome == "hg18") {
   txdb <- "TxDb.Hsapiens.UCSC.hg18.knownGene"
