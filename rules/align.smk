@@ -1,13 +1,25 @@
+def set_reads(wildcards, input):
+        n = len(input)
+        if n == 1:
+            reads = "{}".format(*input)
+            return reads
+        else:
+            reads = config["params"]["bowtie"]["pe"] + " -1 {} -2 {}".format(*input)
+            return reads
+
+
 rule align:
     input:
         get_trimmed
     output:
-        bam = "02aln/{sample}.bam",
+         bam   = temp("02aln/{sample}.bam.tmp"),
+         index = temp("02aln/{sample}.bam.tmp.bai")
     threads:
         CLUSTER["align"]["cpu"]
     params:
-        bowtie = "--chunkmbs 1024 -m 1 --best -S --no-unal -q " + config["idx_bt1_mm"],
-        pe_params = "-I 10 -X 1000",
+        index  = config["ref"]["index"],
+        bowtie = config["params"]["bowtie"]["global"],
+        reads  = set_reads,
     message:
         "Aligning {input} with parameters {params.bowtie}"
     log:
@@ -15,31 +27,28 @@ rule align:
        rm_dups = "00log/alignments/rm_dup/{sample}.log",
     benchmark:
         ".benchmarks/{sample}.align.benchmark.txt"
-    run:
-        n = len(input)
-        if n == 1:
-            reads = "{}".format(*input)
-        else:
-            reads = params.pe_params + " -1 {} -2 {}".format(*input)
-        shell("""
-        bowtie -p {threads} {params.bowtie} {reads} 2> {log.bowtie} \
+    shell:
+        """
+        bowtie -p {threads} {params.bowtie} {params.index} {params.reads} 2> {log.align} \
         | samblaster --removeDups 2> {log.rm_dups} \
         | samtools view -Sb -F 4 - \
-        | samtools sort -m 5G -@ {threads} -T {output}.tmp -o {output} - 2>> {log.align}
-        samtools index {output.} 2>> {log.align}
-        """)
+        | samtools sort -m 5G -@ {threads} -T {output.bam}.tmp -o {output.bam} - 2>> {log.align}
+        samtools index {output.bam}
+        """
 
 
 rule align_spike:
     input:
         get_trimmed_spike
     output:
-        "02aln/{sample}_spike.bam"
+        bam   = temp("02aln_dm/{sample}_spike.bam"),
+        index = temp("02aln_dm/{sample}_spike.bam.bai")
     threads:
         CLUSTER["align"]["cpu"]
     params:
-        bowtie = "--chunkmbs 1024 -m 1 --best -S --no-unal -q " + config["idx_bt1_spike"],
-        pe_params = "-I 10 -X 1000",
+        index  = config["ref"]["index_spike"],
+        bowtie = config["params"]["bowtie"],
+        reads  = set_reads,
     message:
         "Aligning {input} with parameters {params.bowtie}"
     log:
@@ -47,36 +56,60 @@ rule align_spike:
        rm_dups = "00log/alignments/rm_dup/{sample}_spike.log",
     benchmark:
         ".benchmarks/{sample}.alignSpike.benchmark.txt"
-    run:
-        n = len(input)
-        if n == 1:
-            reads = "{}".format(*input)
-        else:
-            reads = params.pe_params + " -1 {} -2 {}".format(*input)
-        shell("""
-        bowtie -p {threads} {params.bowtie} {reads} 2> {log.bowtie} \
+    shell:
+        """
+        bowtie -p {threads} {params.bowtie} {params.index} {params.reads} 2> {log.align} \
         | samblaster --removeDups 2> {log.rm_dups} \
         | samtools view -Sb -F 4 - \
-        | samtools sort -m 5G -@ {threads} -T {output}.tmp -o {output} - 2>> {log.align}
-        samtools index {output} 2>> {log.align}
-        """)
+        | samtools sort -m 5G -@ {threads} -T {output.bam}.tmp -o {output.bam} - 2>> {log.align}
+        samtools index {output.bam}
+        """
 
 
 rule clean_spike:
     input:
-        mm = "02aln/{sample}.bam",
-        spike = "02aln_dm/{sample}_spike.bam"
+        mm          = "02aln/{sample}.bam.tmp",
+        spike       = "02aln_dm/{sample}_spike.bam",
+        mm_index    = "02aln/{sample}.bam.tmp.bai",
+        spike_index = "02aln_dm/{sample}_spike.bam.bai",
     output:
-        mm = "02aln/{sample}.clean.bam",
-        dm = "02aln_dm/{sample}_spike.clean.bam"
+        mm    = temp("02aln/{sample}.bam.tmp.clean"),
+        spike = "02aln_dm/{sample}_spike.bam.clean"
     log:
         "00log/alignments/{sample}.removeSpikeDups"
     shell:
         """
-        python scripts/remove_spikeDups.py {input}       
-        mv {input.mm}.clean {output.mm}; mv {input.dm}.clean {output.dm}
-        samtools index {output.mm}; samtools index {output.dm}
+        python scripts/remove_spikeDups.py {input} &> {log}      
+        mv {input.mm}.temporary {output.mm}; mv {input.spike}.temporary {output.spike}
+        samtools index {output.spike}
         """
+
+# Dummy rule to change the name of the bam files to be able to 
+# have the same name structure in spike-in and non-spiked samples
+rule update_bam:
+    input:
+        get_bam
+    output:
+        "02aln/{sample}.bam",
+    log:
+        "00log/alignments/{sample}.update_bam"
+    shell:
+        """
+        cp {input} {output}
+        samtools index {output} 2>> {log}
+        """
+
+
+def set_reads_spike(wildcards, input):
+        n = len(input)
+        assert n == 2 or n == 3, "input->sample must have 2 (sample + input) or 3 (sample + input + spike) elements"
+        if n == 2:
+            reads = "scripts/bam2bigwig.py"
+            return reads
+        if n == 3:
+            reads = "scripts/bam2bigwig_spike.py --spike {} --chrSizes ".format(input.spike) + config["ref"]["chr_sizes"]
+            return reads
+
 
 
 rule bam2bigwig:
@@ -85,9 +118,10 @@ rule bam2bigwig:
     output:  
         "06bigwig/{sample}_{control}-input.bw"
     params: 
-        read_exten = config['read_extension']
+        read_exten = set_read_extension,
+        reads = set_reads_spike,
     log: 
-        "00log/{sample}_{control}-input_bigwig.bam2bw"
+        "00log/bam2bw/{sample}_{control}-input_bigwig.bam2bw"
     threads: 
         CLUSTER["bam2bigwig"]["cpu"]
     message: 
@@ -96,39 +130,13 @@ rule bam2bigwig:
         ".benchmarks/{sample}_{control}.bam2bw.benchmark.txt"
     shell:
         """
-        python scripts/bam2bigwig.py --case {input.case} \
+        python {params.reads} \
+        --case {input.case} \
         --reference {input.reference} \
         --bigwig {output} \
-        --extReads {params.read_exten} \
-        --threads {threads} 2> {log}
+        --threads {threads} {params.read_exten} &> {log}
         """
 
-rule bam2bigwig_spike:
-    input: 
-        unpack(get_bam_cntrl)
-    output:
-        "06bigwig/{sample}_{control}-inputSpike.bw"
-    params:
-        chr_sizes  = config["genome"]["chr_sizes"],
-        read_exten = config['read_extension']
-    log: 
-        "00log/{sample}_{control}-input_bigwig.bam2bw"
-    threads:
-        CLUSTER["bam2bigwig"]["cpu"]
-    message:
-        "making spike-normalized input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
-    benchmark:
-        ".benchmarks/{sample}_{control}.bam2bw-spike.benchmark.txt"
-    shell:
-        """
-        python scripts/bam2bigwig_spike.py --case {input.case} \
-        --reference {input.reference} \
-        --spike {input.dm} \
-        --bigwig {output} \
-        --extReads {params.read_exten} \
-        --chrSizes {params.chr_sizes} \
-        --threads {threads} 2> {log}
-        """
 
 # rule bigwig2server:
 #     input: 

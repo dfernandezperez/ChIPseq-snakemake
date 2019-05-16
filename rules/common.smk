@@ -14,14 +14,6 @@ def get_trimmed(wildcards):
     return "fastq/{sample}.se.fastq".format(**wildcards)
 
 
-def get_trimmed_forward(wildcards):
-	if not is_single_end(**wildcards):
-	    # paired-end sample
-	    return "fastq/{sample}.1.fastq".format(**wildcards)
-	# single end sample
-	return "fastq/{sample}.se.fastq".format(**wildcards)
-
-
 def get_trimmed_spike(wildcards):
     if is_spike(**wildcards):
         if not is_single_end(**wildcards):
@@ -31,22 +23,35 @@ def get_trimmed_spike(wildcards):
         return "fastq/{sample}.se.fastq".format(**wildcards)
 
 
+# Used to use just the forward reads to create the fastqc report
+def get_trimmed_forward(wildcards):
+    if not is_single_end(**wildcards):
+        # paired-end sample
+        return "fastq/{sample}.1.fastq".format(**wildcards)
+    # single end sample
+    return "fastq/{sample}.se.fastq".format(**wildcards)
+
+
 def get_bam(wildcards):
-    if not is_spike(wildcards.sample):
-        return "02aln/{sample}.bam".format(wildcards.sample)
-    return "02aln/{sample}.clean.bam".format(wildcards.sample)
+    if not is_spike(**wildcards):
+        return "02aln/{sample}.bam.tmp".format(**wildcards)
+    return "02aln/{sample}.bam.tmp.clean".format(**wildcards)
+
+
+def set_read_extension(wildcards):
+    if is_single_end(wildcards.sample):
+        return "--extReads " + str(config['read_extension'])
+    return "--extReads " + str(config['read_extension']) # This should return an empty string, but I'll leave it like this until I understand how to deal with single end input and pair-end samples
 
 
 def get_bam_cntrl(wildcards):
     if not is_spike(wildcards.sample):
-        return { "case": "02aln/{sample}.clean.bam".format(sample=wildcards.sample),
+        return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample),
             "reference": "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam".format(
             genome = SAMPLES.GENOME[wildcards.sample], 
             control = wildcards.control) }
-
-    return { "case": "02aln/{sample}.clean.bam".format(sample=wildcards.sample),
+    return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample),
              "reference": "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam".format(
              genome = SAMPLES.GENOME[wildcards.sample], 
              control = wildcards.control),
-             "spike": "02aln_dm/{sample}_spike.clean.bam".format(sample=wildcards.sample) }
-
+             "spike": "02aln_dm/{sample}_spike.bam.clean".format(sample=wildcards.sample) }

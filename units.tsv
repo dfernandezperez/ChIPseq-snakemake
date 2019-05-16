@@ -1,0 +1,3 @@
+sample	lane	fq1	fq2
+E14-K27me3	lane1	/hpcnfs/data/DP/SnakemakePipelines/ChIPseq-snakemake/fastq-test/K27me3/E14_K27me3_SPIKEIN_S14633_TAATGA_L006_R1_001.fastq.gz
+E14-Ring1b	lane1	/hpcnfs/data/DP/SnakemakePipelines/ChIPseq-snakemake/fastq-test/Ring1b/R1b_E14_S13856_CCAACA_L001_R1_001.fastq.gz

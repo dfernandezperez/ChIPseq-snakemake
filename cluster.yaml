@@ -1,0 +1,46 @@
+__default__ :
+    cpu         : 1
+    email       : "ieo4462@ieo.it"
+    EmailNotice : "a"
+    jname       : "{rule}.{wildcards}"
+    output      : ".clusterLogs/{rule}.{wildcards}.out"
+    error       : ".clusterLogs/{rule}.{wildcards}.err"
+    MaxMem      : 8
+
+fastp_se :
+    cpu : 5
+
+fastp_pe :
+    cpu : 5
+
+fastqc:
+    cpu : 5
+
+align:
+    cpu : 10
+    MaxMem : 40
+
+align_spike:
+    cpu : 10
+    MaxMem : 40
+
+phantom_peak_qual:
+    cpu : 5
+
+plotFingerprint:
+    cpu : 5
+
+bam2bigwig:
+    cpu : 10
+    MaxMem : 10
+
+call_peaks:
+    EmailNotice: "ae"
+    cpu : 1
+
+GC_bias:
+    cpu : 5
+    MaxMem : 40
+
+multiQC:
+    EmailNotice: "ae"

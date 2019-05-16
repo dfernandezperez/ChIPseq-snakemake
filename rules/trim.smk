@@ -39,9 +39,9 @@ rule fastp_pe:
 	log:
 		"00log/fastp/{sample}.log"
 	threads:
-		CLUSTER["fastp"]["cpu"]
+		CLUSTER["fastp_pe"]["cpu"]
 	params:
-		fastp_params = config["params"]["fastp-pe"],
+		fastp_params = config["params"]["fastp"]["pe"],
 		tmp_fw       = "fastq/{sample}.1.fastq.tmp.gz",
 		tmp_rv       = "fastq/{sample}.2.fastq.tmp.gz"
 	message:
@@ -71,9 +71,9 @@ rule fastp_se:
 	log:
 		"00log/fastp/{sample}.log"
 	threads:
-		CLUSTER["fastp"]["cpu"]
+		CLUSTER["fastp_se"]["cpu"]
 	params:
-		fastp_params = config["params"]["fastp-se"],
+		fastp_params = config["params"]["fastp"]["se"],
 	message:
 		"Processing fastq files from {input}"
 	shadow:
@@ -85,3 +85,4 @@ rule fastp_se:
 		zcat {input} | \
 		fastp -o {output} \
 		-w {threads} {params.fastp_params} 2> {log}
+		"""

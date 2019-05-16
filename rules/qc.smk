@@ -1,14 +1,41 @@
+# ------- FASTQC ------- #
+rule fastqc:
+    input:  
+        get_trimmed_forward
+    output: 
+        "01qc/fqc/{sample}_fastqc.zip"
+    log:    
+        "00log/fqc/{sample}.log"
+    params:
+        folder_name = "01qc/fqc/",
+        tmp = "01qc/fqc/{sample}.fastq"
+    threads: 
+        CLUSTER["fastqc"]["cpu"]
+    message: 
+        "Running fastqc for {input}"
+    benchmark:
+        ".benchmarks/{sample}.fastqc.benchmark.txt"
+    shadow: 
+        "minimal"
+    shell:
+        """
+        ln -s "$(pwd)/{input}" {params.tmp}
+        fastqc -o {params.folder_name} -f fastq -t {threads} --noextract {params.tmp} 2> {log}
+        """
+
+
+# ------- PhantomPeakQual ------- #
 rule phantom_peak_qual:
     input: 
-        get_bam
+        "02aln/{sample}.bam"
     output:
-        "04phantompeakqual/{sample}_phantom.txt"
+        "01qc/phantompeakqual/{sample}.spp.out"
     log:
-        "00log/qc/{sample}_phantompeakqual.log"
+        "00log/phantompeakqual/{sample}_phantompeakqual.log"
     threads:
         CLUSTER["phantom_peak_qual"]["cpu"]
     params:
-        out_dir = "04phantompeakqual"
+        out_dir = "01qc/phantompeakqual"
     message:
         "Running phantompeakqual for {wildcards.sample}"
     benchmark:
@@ -20,20 +47,70 @@ rule phantom_peak_qual:
         """
 
 
+# ------- InsertSize calculation ------- #
+rule insert_size:
+    input:
+        "02aln/{sample}.bam"
+    output:
+        txt="01qc/insert_size/{sample}.isize.txt",
+        pdf="01qc/insert_size/{sample}.isize.pdf"
+    log:
+        "00log/picard/insert_size/{sample}.log"
+    params:
+        # optional parameters (e.g. relax checks as below)
+        "VALIDATION_STRINGENCY=LENIENT "
+        "METRIC_ACCUMULATION_LEVEL=null "
+        "METRIC_ACCUMULATION_LEVEL=SAMPLE"
+    shell:
+        """
+        # Create the outfiles to handle
+        touch {output}
+        picard CollectInsertSizeMetrics {params} \
+        INPUT={input} OUTPUT={output.txt} \
+        HISTOGRAM_FILE={output.pdf} > {log}
+        """
+
+
+# ------- Deeptools quality control ------- #
+rule plotFingerprint:
+    input: 
+        case      = "02aln/{sample}.bam",
+        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam".format(
+            genome = SAMPLES.GENOME[wildcards.sample], 
+            control = wildcards.control) 
+    output: 
+        qualMetrics = "01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv",
+        raw_counts  = "01qc/fingerPrint/{sample}_{control}.rawcounts.tsv",
+        plot        = "01qc/fingerPrint/{sample}_{control}.plot.pdf",
+    log:
+        "00log/plotFingerprint/{sample}_{control}.log"
+    params:
+        read_exten = set_read_extension,
+    threads:
+        CLUSTER["plotFingerprint"]["cpu"]
+    shell:
+        """
+        plotFingerprint -b {input} \
+        -p {threads} \
+        --outQualityMetrics {output.qualMetrics} \
+        --outRawCounts {output.raw_counts} \
+        --plotFile {output.plot}
+        """
+
 rule GC_bias:
     input: 
-        bam = get_bam,
+        bam = "02aln/{sample}.bam",
         bed = rules.filter_peaks.output.bed_filt
     output: 
-        pdf      = "07gcBias/{sample}_{control}-input_GCbias.pdf",
-        freq_txt = "07gcBias/{sample}_{control}-input_GCbias.txt"
+        pdf      = "01qc/GCbias/{sample}_{control}-input_GCbias.pdf",
+        freq_txt = "01qc/GCbias/{sample}_{control}-input_GCbias.txt"
     log:
-        "00log/qc/{sample}_{control}-input_GCbias.log"
+        "00log/GCbias/{sample}_{control}-input_GCbias.log"
     params:
-        repeatMasker = config["genome"]['rep_masker'],
-        tempBed      = "07gcBias/{sample}_Repeatmasker.bed.tmp",
-        bit_file     = config["genome"]["2bit"],
-        egenome_size = config["genome"]["egenome_size"]
+        repeatMasker = config["ref"]['rep_masker'],
+        tempBed      = "01qc/GCbias/{sample}_Repeatmasker.bed.tmp",
+        bit_file     = config["ref"]["2bit"],
+        egenome_size = config["ref"]["egenome_size"]
     threads:
         CLUSTER["GC_bias"]["cpu"]
     message:
@@ -60,18 +137,24 @@ rule GC_bias:
 # ---------------- MultiQC report ----------------- #
 rule multiQC:
     input:
-        expand("00log/{sample}.align", sample = ALL_SAMPLES),
-        expand("01fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES),
-        expand("02aln/{sample}.bam.flagstat", sample = ALL_SAMPLES)
+        expand("00log/alignments/{sample}.log", sample = ALL_SAMPLES),
+        expand("01qc/fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES),
+        expand("01qc/insert_size/{sample}.isize.txt", sample = ALL_SAMPLES),
+        expand("01qc/phantompeakqual/{sample}.spp.out", sample = ALL_SAMPLES),
+        expand("00log/alignments/rm_dup/{sample}.log", sample = ALL_SAMPLES),
+        expand("01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv", sample = ALL_SAMPLES, control = ALL_CONTROLS),
+        expand("01qc/fingerPrint/{sample}_{control}.rawcounts.tsv", sample = ALL_SAMPLES, control = ALL_CONTROLS),
+        expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.xls", sample = ALL_SAMPLES, control = ALL_CONTROLS)
     output: 
-        "10multiQC/multiQC_log.html"
+        "01qc/multiqc_report.html"
     params:
-        log_name = "multiQC_log"
+        log_name = "multiQC_log",
+        folder = "01qc"
     log:
         "00log/multiqc.log"
     message:
         "multiqc for all logs"
     shell:
         """
-        multiqc {input} -o 10multiQC -f -v -n {params.log_name} 2> {log}
+        multiqc {input} -o {params.folder} -f -v -n {params.log_name} 2> {log}
         """

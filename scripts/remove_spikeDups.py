@@ -29,8 +29,8 @@ def write_unique_reads(bamfile1, bamfile2, common_reads):
 	bam2_open = pysam.AlignmentFile(bamfile2,'rb')
 
 	# Open the new bam files where were going to write the output
-	bam1_outfile = pysam.Samfile(bamfile1 + '.clean', 'wb', template=bam1_open)
-	bam2_outfile = pysam.Samfile(bamfile2 + '.clean', 'wb', template=bam2_open)
+	bam1_outfile = pysam.Samfile(bamfile1 + '.temporary', 'wb', template=bam1_open)
+	bam2_outfile = pysam.Samfile(bamfile2 + '.temporary', 'wb', template=bam2_open)
 
 	# Print the bam lines that are not shared by mm and dm to new bam files
 	counter = 0

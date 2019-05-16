@@ -1,25 +1,28 @@
 rule call_peaks:
     input: 
-        case      = get_bam,
+        case      = "02aln/{sample}.bam",
         reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam".format(
             genome = SAMPLES.GENOME[wildcards.sample], 
             control = wildcards.control) 
     output: 
-        narrowPeak = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak"
+        narrowPeak = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak",
+        xls        = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.xls"
     log:
         "00log/macs2/{sample}_{control}-input_macs2.log"
     params:
         out_dir      = "03peak_macs2/{sample}_{control}-input",
-        macs2_params = "--keep-dup all --format BAM --nomodel -m 10 30",
-        pvalue       = config["macs2"]["pvalue"],
-        gsize        = config["macs2"]["gsize"]
+        macs2_params = config["params"]["macs2"]["pk_calling"],
+        pvalue       = config["params"]["macs2"]["pvalue"],
+        gsize        = config["params"]["macs2"]["gsize"],
+        paired_end = lambda w: "--format BAM --nomodel" if is_single_end(w.sample) else "--format BAMPE"
     message: 
         "call_peaks macs2 with input {input.reference} for sample {input.case}"
     benchmark:
         ".benchmarks/{sample}_{control}.callpeaks.benchmark.txt"
     shell:
         """
-        macs2 callpeak --treatment {input.case} \
+        macs2 callpeak {params.paired_end} \
+            --treatment {input.case} \
             --control {input.reference} \
             --gsize {params.gsize} \
             --outdir {params.out_dir} \
@@ -33,9 +36,9 @@ rule filter_peaks:
     input:
         rules.call_peaks.output.narrowPeak
     output:
-        bed_filt = "03peak_macs2/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}.bed".format(pvalue = config["macs2"]["filt_peaks_pval"])
+        bed_filt = "03peak_macs2/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}.bed".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"])
     params:
-        pval_filt = config["macs2"]["filt_peaks_pval"]
+        pval_filt = config["params"]["macs2"]["filt_peaks_pval"]
     shell:
         """
         awk "\$8 >= {params.pval_filt}" {input} | cut -f1-4,8 > {output.bed_filt}
@@ -46,11 +49,11 @@ rule peakAnnot:
     input :
         rules.filter_peaks.output.bed_filt,
     output:
-        annot             = "05peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}.annot".format(pvalue = config["macs2"]["filt_peaks_pval"]),
-        promo_bed_targets = "05peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_promoTargets.bed".format(pvalue = config["macs2"]["filt_peaks_pval"]),
-        promoTargets      = "05peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_promoTargets.txt".format(pvalue = config["macs2"]["filt_peaks_pval"]),
-        promoBed          = "05peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_promoPeaks.bed".format(pvalue = config["macs2"]["filt_peaks_pval"]),
-        distalBed         = "05peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_distalPeaks.bed".format(pvalue = config["macs2"]["filt_peaks_pval"])
+        annot             = "04peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}.annot".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"]),
+        promo_bed_targets = "04peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_promoTargets.bed".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"]),
+        promoTargets      = "04peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_promoTargets.txt".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"]),
+        promoBed          = "04peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_promoPeaks.bed".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"]),
+        distalBed         = "04peak_annot/{{sample}}_{{control}}-input/{{sample}}_peaks_p{pvalue}_distalPeaks.bed".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"])
     params:
         before = config["promoter"]["bTSS"],
         after  = config["promoter"]["aTSS"],

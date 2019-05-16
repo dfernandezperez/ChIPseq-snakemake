@@ -1,18 +1,34 @@
-# Bowtie indexes
-idx_bt1_mm: /hpcnfs/techunits/bioinformatics/refdata/Mus_musculus/UCSC/mm9/Sequence/BowtieIndex/genome
-idx_bt1_dm: /hpcnfs/data/DP/dm6/dm6
+# path to sample sheet (TSV format, columns: sample, condition, ...)
+samples: samples.txt
+
+# Parameters for submitting jobs to cluster via qsub
+cluster: cluster.yaml
+
+# path to sequencing unit sheet (TSV format, columns: sample, unit, fq1, fq2)
+# Units are technical replicates (e.g. lanes, or resequencing of the same biological
+# sample).
+units: units.tsv
+
 
 # MACS2 parameters
-macs2:
-  gsize: mm
-  pvalue: 1e-5
-  pvalue_broad: 1e-5
-  # -log10 pvalue for peak filtering -corresponds to the 8th column of the narrowPeak file. Default 10.
-  filt_peaks_pval: "10"
 
-# json files
-samples: samples.txt
-CLUSTER_JSON: cluster.json
+
+# Parameters for the software used
+params:
+  bowtie: 
+    global: "--chunkmbs 1024 -m 1 --best -S --no-unal -q"
+    pe: "-I 10 -X 1000"
+  featureCounts: "-s 0 -t exon -g gene_name"
+  fastp:
+    se: "--stdin -t 1 -A -Q -L"
+    pe: "-t 1 -A -Q -L"
+  macs2:
+    pk_calling: "--keep-dup all -m 10 30"
+    gsize: mm
+    pvalue: 1e-5
+    pvalue_broad: 1e-5
+    # -log10 pvalue for peak filtering -corresponds to the 8th column of the narrowPeak file. Default 10.
+    filt_peaks_pval: "10"
 
 # Determine the region corresponding to promoters around TSS
 promoter:
@@ -21,7 +37,11 @@ promoter:
   # Before TSS
   bTSS: 2500
 
-genome:
+ref:
+  # Bowtie index for the alignment of the sample
+  index: /hpcnfs/techunits/bioinformatics/refdata/Mus_musculus/UCSC/mm9/Sequence/BowtieIndex/genome
+  # Bowtie index for the alignmed of the spike-in, if there is
+  index_spike: /hpcnfs/data/DP/dm6/dm6
   # File required by computeGCbias from deeptools
   2bit: /hpcnfs/data/DP/Databases/mm9.2bit
   # Used in computeGCbias to ignore repetitive regions in the calculation
