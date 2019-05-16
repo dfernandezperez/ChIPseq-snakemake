@@ -47,7 +47,7 @@ rule align_spike:
         CLUSTER["align"]["cpu"]
     params:
         index  = config["ref"]["index_spike"],
-        bowtie = config["params"]["bowtie"],
+        bowtie = config["params"]["bowtie"]["global"],
         reads  = set_reads,
     message:
         "Aligning {input} with parameters {params.bowtie}"
