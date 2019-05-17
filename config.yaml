@@ -10,15 +10,11 @@ cluster: cluster.yaml
 units: units.tsv
 
 
-# MACS2 parameters
-
-
 # Parameters for the software used
 params:
   bowtie: 
     global: "--chunkmbs 1024 -m 1 --best -S --no-unal -q"
     pe: "-I 10 -X 1000"
-  featureCounts: "-s 0 -t exon -g gene_name"
   fastp:
     se: "--stdin -t 1 -A -Q -L"
     pe: "-t 1 -A -Q -L"

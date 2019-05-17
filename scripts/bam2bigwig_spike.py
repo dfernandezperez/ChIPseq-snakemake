@@ -71,7 +71,9 @@ bdg2bw      = "bedGraphToBigWig " + bdg + " " + chr_sizes + " " + bw
 
 subprocess.call(bamCompare.split())
 subprocess.call(wiggleTools.split())
-subprocess.call(sort_bed.split(), stdout = bdg)
+# First open the file to avoid this error https://stackoverflow.com/questions/31488688/attributeerror-str-object-has-no-attribute-fileno
+with open(bdg, "w+") as f:
+	subprocess.call(sort_bed.split(), stdout = f)
 subprocess.call(bdg2bw.split())
 
 # Cleaning bedgraph file
