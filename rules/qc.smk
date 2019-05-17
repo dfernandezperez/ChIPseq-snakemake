@@ -148,7 +148,7 @@ rule multiQC:
     output: 
         "01qc/multiqc_report.html"
     params:
-        log_name = "multiQC_log",
+        log_name = "multiqc_report",
         folder = "01qc"
     log:
         "00log/multiqc.log"
