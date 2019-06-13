@@ -23,15 +23,15 @@ units.index = units.index.set_levels([i.astype(str) for i in units.index.levels]
 ### DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE
 #######################################################################################################################
 # Get the names of the input files and genome version for calling peak and creating bigwig files
-ALL_SAMPLES = SAMPLES.NAME
-ALL_CONTROLS    = SAMPLES.INPUT
-CONTROLS_G  = SAMPLES.GENOME
+ALL_SAMPLES  = SAMPLES.NAME
+ALL_CONTROLS = SAMPLES.INPUT
+CONTROLS_G   = SAMPLES.GENOME
 
-# ALL_CONTROLS  = expand("/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam", genome = CONTROLS_G, control = ALL_CONTROLS)
 ALL_PEAKANNOT = expand("04peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".annot", zip, sample=ALL_SAMPLES, control=ALL_CONTROLS)
+ALL_PEAKS     = expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak", zip, sample=ALL_SAMPLES, control=ALL_CONTROLS)
 ALL_BIGWIG    = expand("06bigwig/{sample}_{control}-input.bw", zip, sample=ALL_SAMPLES, control=ALL_CONTROLS)
 ALL_GCBIAS    = expand("01qc/GCbias/{sample}_{control}-input_GCbias.pdf", zip, sample=ALL_SAMPLES, control=ALL_CONTROLS)
-ALL_QC        = ["01qc/multiqc_report.html"]
+ALL_QC        = ["01qc/multiqc/multiqc_report.html"]
 # ALL_BW2SERVER = expand("temp_file_{sample}_{control}.txt",  zip, sample=ALL_SAMPLES, control=ALL_CONTROLS)
 
 

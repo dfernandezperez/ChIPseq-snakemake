@@ -168,5 +168,5 @@ rule multiQC:
         "multiqc for all logs"
     shell:
         """
-        multiqc {input} -o {params.folder} -l {input} -f -v -n {params.log_name} 2> {log}
+        multiqc -o {params.folder} -l {input} -f -v -n {params.log_name} 2> {log}
         """
