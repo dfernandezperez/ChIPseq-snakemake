@@ -152,7 +152,7 @@ rule multiQC_inputs:
     run:
         with open(output.file, 'w') as outfile:
             for fname in input:
-                    outfile.write(fname)
+                    outfile.write(fname + "\n")
 
 rule multiQC:
     input:
