@@ -135,7 +135,7 @@ rule GC_bias:
         """
 
 # ---------------- MultiQC report ----------------- #
-rule multiQC:
+rule multiQC_inputs:
     input:
         expand("00log/alignments/{sample}.log", sample = ALL_SAMPLES),
         expand("01qc/fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES),
@@ -145,6 +145,18 @@ rule multiQC:
         expand("01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv", sample = ALL_SAMPLES, control = ALL_CONTROLS),
         expand("01qc/fingerPrint/{sample}_{control}.rawcounts.tsv", sample = ALL_SAMPLES, control = ALL_CONTROLS),
         expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.xls", sample = ALL_SAMPLES, control = ALL_CONTROLS)
+    output: 
+        file = "01qc/multiqc_inputs.txt"
+    message:
+        "create file containing all multiqc input files"
+    run:
+        with open(output.file, 'w') as outfile:
+            for fname in input:
+                    outfile.write(fname)
+
+rule multiQC:
+    input:
+        "01qc/multiqc_inputs.txt"
     output: 
         "01qc/multiqc_report.html"
     params:
@@ -156,5 +168,5 @@ rule multiQC:
         "multiqc for all logs"
     shell:
         """
-        multiqc {input} -o {params.folder} -f -v -n {params.log_name} 2> {log}
+        multiqc {input} -o {params.folder} -l {input} -f -v -n {params.log_name} 2> {log}
         """

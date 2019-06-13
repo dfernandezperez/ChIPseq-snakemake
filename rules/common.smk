@@ -41,7 +41,7 @@ def get_bam(wildcards):
 def set_read_extension(wildcards):
     if is_single_end(wildcards.sample):
         return "--extReads " + str(config['read_extension'])
-    return "--extReads " + str(config['read_extension']) # This should return an empty string, but I'll leave it like this until I understand how to deal with single end input and pair-end samples
+    return "--extReads "
 
 
 def get_bam_cntrl(wildcards):
