@@ -28,13 +28,13 @@ rule align:
     benchmark:
         ".benchmarks/{sample}.align.benchmark.txt"
     shell:
-
+        """
         bowtie -p {threads} {params.bowtie} {params.index} {params.reads} 2> {log.align} \
         | samblaster --removeDups 2> {log.rm_dups} \
         | samtools view -Sb -F 4 - \
         | samtools sort -m 5G -@ {threads} -T {output.bam}.tmp -o {output.bam} - 2>> {log.align}
         samtools index {output.bam}
-
+        """
 
 
 rule align_spike:
