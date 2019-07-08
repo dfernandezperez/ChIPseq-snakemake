@@ -75,7 +75,7 @@ rule insert_size:
 rule plotFingerprint:
     input: 
         case      = "02aln/{sample}.bam",
-        reference = lambda wildcards: "/hpcnfs/data/DP/ChIPseq/INPUT_BAM_FILES/{genome}/input_{control}.bam".format(
+        reference = lambda wildcards: "/hpcnfs/scratch/DP/dfernand/Stamburri/PCGFS_PROJECT/ChIPseq/INPUT/{genome}/input_{control}.bam".format(
             genome = SAMPLES.GENOME[wildcards.sample], 
             control = wildcards.control) 
     output: 
@@ -142,11 +142,11 @@ rule multiQC_inputs:
         expand("01qc/insert_size/{sample}.isize.txt", sample = ALL_SAMPLES),
         expand("01qc/phantompeakqual/{sample}.spp.out", sample = ALL_SAMPLES),
         expand("00log/alignments/rm_dup/{sample}.log", sample = ALL_SAMPLES),
-        expand("01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv", sample = ALL_SAMPLES, control = ALL_CONTROLS),
-        expand("01qc/fingerPrint/{sample}_{control}.rawcounts.tsv", sample = ALL_SAMPLES, control = ALL_CONTROLS),
-        expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.xls", sample = ALL_SAMPLES, control = ALL_CONTROLS)
+        expand("01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv", zip, sample = ALL_SAMPLES, control = ALL_CONTROLS),
+        expand("01qc/fingerPrint/{sample}_{control}.rawcounts.tsv", zip, sample = ALL_SAMPLES, control = ALL_CONTROLS),
+        expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.xls", zip, sample = ALL_SAMPLES, control = ALL_CONTROLS)
     output: 
-        file = "01qc/multiqc_inputs.txt"
+        file = "01qc/multiqc/multiqc_inputs.txt"
     message:
         "create file containing all multiqc input files"
     run:
@@ -156,14 +156,14 @@ rule multiQC_inputs:
 
 rule multiQC:
     input:
-        "01qc/multiqc_inputs.txt"
+        "01qc/multiqc/multiqc_inputs.txt"
     output: 
-        "01qc/multiqc_report.html"
+        "01qc/multiqc/multiqc_report.html"
     params:
         log_name = "multiqc_report",
-        folder = "01qc"
+        folder   = "01qc/multiqc"
     log:
-        "00log/multiqc.log"
+        "00log/multiqc/multiqc.log"
     message:
         "multiqc for all logs"
     shell:

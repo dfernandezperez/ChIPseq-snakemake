@@ -28,13 +28,13 @@ rule align:
     benchmark:
         ".benchmarks/{sample}.align.benchmark.txt"
     shell:
-        """
+
         bowtie -p {threads} {params.bowtie} {params.index} {params.reads} 2> {log.align} \
         | samblaster --removeDups 2> {log.rm_dups} \
         | samtools view -Sb -F 4 - \
         | samtools sort -m 5G -@ {threads} -T {output.bam}.tmp -o {output.bam} - 2>> {log.align}
         samtools index {output.bam}
-        """
+
 
 
 rule align_spike:
@@ -111,7 +111,6 @@ def set_reads_spike(wildcards, input):
             return reads
 
 
-
 rule bam2bigwig:
     input: 
         unpack(get_bam_cntrl)
@@ -134,36 +133,68 @@ rule bam2bigwig:
         --case {input.case} \
         --reference {input.reference} \
         --bigwig {output} \
-        --threads {threads} {params.read_exten} &> {log}
+        --threads {threads} &> {log}
         """
 
 
-# rule bigwig2server:
-#     input: 
-#         bw       = "06bigwig/{sample}_{control}-input.bw",
-#         flagstat = "02aln/{sample}.bam.flagstat"
-#     output:
-#         temp("temp_file_{sample}_{control}.txt")
-#     params:
-#         user     = lambda wildcards : SAMPLES.USER[wildcards.sample],
-#         antibody = lambda wildcards : SAMPLES.AB[wildcards.sample],
-#         genome   = lambda wildcards : SAMPLES.GENOME[wildcards.sample],
-#         run      = lambda wildcards : SAMPLES.RUN[wildcards.sample],
-#         chip     = lambda wildcards : str("ChIPseq") if SAMPLES.SPIKE[wildcards.sample] == False else str("ChIPseqSpike")
-#     run:
-#         with open (input.flagstat, "r") as f:
-#             line         = f.readlines()[4] # fifth line contains the number of mapped reads
-#             match_number = re.match(r'(\d.+) \+.+', line)
-#             total_reads  = int(match_number.group(1))
-#         shell("cp {input} \
-#             /hpcnfs/data/DP/UCSC_tracks/Data/bigWig/{sample}_{control}_{user}_{nreads}_{chip}_{antibody}_{genome}_{run}.bigWig".format(
-#             input    = input.bw,
-#             sample   = wildcards.sample,
-#             control  = wildcards.control,
-#             user     = params.user,
-#             nreads   = total_reads,
-#             chip     = params.chip,
-#             antibody = params.antibody,
-#             genome   = params.genome,
-#             run      = params.run))
-#         shell("touch {output}".format(output = output))
+def set_reads_spike2(wildcards, input):
+        n = len(input)
+        assert n == 1 or n == 2, "input->sample must have 1 (sample) or 2 (sample + spike) elements"
+        if n == 1:
+            reads = "scripts/bam2bigwig_noSubtract.py"
+            return reads
+        if n == 2:
+            reads = "scripts/bam2bigwig_spike_noSubtract.py --spike {} --chrSizes ".format(input.spike) + config["ref"]["chr_sizes"]
+            return reads
+
+rule bam2bigwig_noSubstract:
+    input: 
+        "02aln/{sample}.bam"
+    output:  
+        "06bigwig/noSubtract/{sample}.bw"
+    params: 
+        read_exten = set_read_extension,
+        reads = set_reads_spike2,
+    log: 
+        "00log/bam2bw/{sample}_bigwig.bam2bw"
+    threads: 
+        CLUSTER["bam2bigwig"]["cpu"]
+    message: 
+        "making input subtracted bigwig for sample {wildcards.sample}"
+    shell:
+        """
+        python {params.reads} \
+        --case {input} \
+        --bigwig {output} \
+        --threads {threads} &> {log}
+        """
+
+rule bigwig2server:
+    input: 
+        bw       =  "06bigwig/noSubtract/{sample}.bw",
+        samblaster = "00log/alignments/rm_dup/{sample}.log"
+    output:
+        temp("temp_file_{sample}_{control}.txt")
+    params:
+        user     = lambda wildcards : SAMPLES.USER[wildcards.sample],
+        antibody = lambda wildcards : SAMPLES.AB[wildcards.sample],
+        genome   = lambda wildcards : SAMPLES.GENOME[wildcards.sample],
+        run      = lambda wildcards : SAMPLES.RUN[wildcards.sample],
+        chip     = lambda wildcards : str("ChIPseq") if SAMPLES.SPIKE[wildcards.sample] == False else str("ChIPseqSpike")
+    run:
+        with open (input.samblaster, "r") as f:
+            line         = f.readlines()[4] # fifth line contains the number of mapped reads
+            match_number = re.match(r'samblaster: Removed (\d.+) of (\d.+) \(', line)
+            total_reads  = int(match_number.group(2))-int(match_number.group(1))
+        shell("cp {input} \
+            /hpcnfs/data/DP/UCSC_tracks/Data/bigWig/{sample}_{control}_{user}_{nreads}_{chip}_{antibody}_{genome}_{run}.bigWig".format(
+            input    = input.bw,
+            sample   = wildcards.sample,
+            control  = wildcards.control,
+            user     = params.user,
+            nreads   = total_reads,
+            chip     = params.chip,
+            antibody = params.antibody,
+            genome   = params.genome,
+            run      = params.run))
+        shell("touch {output}".format(output = output))
