@@ -13,6 +13,12 @@ fastp_se :
 fastp_pe :
     cpu : 5
 
+geo_fastp_se :
+    cpu : 5
+
+geo_fastp_pe :
+    cpu : 5
+
 fastqc:
     cpu : 5
 
@@ -31,6 +37,10 @@ plotFingerprint:
     cpu : 5
 
 bam2bigwig:
+    cpu : 10
+    MaxMem : 10
+
+bam2bigwig_noSubstract:
     cpu : 10
     MaxMem : 10
 
