@@ -9,7 +9,6 @@ from argparse import ArgumentParser
 parser = ArgumentParser(description='Bam to bigwig for spike-in samples')
 parser.add_argument('-c', '--case', help='case sample bam file', required=True)
 parser.add_argument('-s', '--spike', help='spike-in bam file', required=True)
-parser.add_argument('-r', '--reference', help='reference file (input) bam file', required=True)
 parser.add_argument('-b', '--bigwig', help='name for the output bigwig file', required=True)
 parser.add_argument('-x', '--chrSizes', help='Chromosome sizes file', required=True)
 parser.add_argument('-p', '--threads', help='Number of threads to use', required=True)
@@ -18,7 +17,6 @@ options = parser.parse_args()
 
 case      = options.case
 spike     = options.spike
-reference = options.reference
 chr_sizes = options.chrSizes
 threads   = options.threads
 bw        = options.bigwig
@@ -41,20 +39,17 @@ touch_file(case + ".bai")
 ####################
 ## Read bam files ##
 ####################
-r  = pysam.AlignmentFile(reference, "rb")
 dm = pysam.AlignmentFile(spike, "rb")
 c  = pysam.AlignmentFile(case, "rb")
 
 ################################################################
 ## Calculate normalization factors: (1/mapped reads)*1million ##
 ################################################################
-reference_norm = str( (1.0/float(r.mapped))*1000000 )
 dm_norm        = str( (1.0/float(dm.mapped))*1000000 )
 case_norm      = str( (1.0/float(c.mapped))*1000000 )
 
 sampleNorm2spikeNorm = str( (1.0/float(case_norm))*float(dm_norm) )
 
-print reference_norm
 print dm_norm
 print case_norm
 print sampleNorm2spikeNorm
@@ -62,8 +57,7 @@ print sampleNorm2spikeNorm
 #############################
 ## Bash commands to launch ##
 #############################
-bamCompare  = "bamCompare -b1 " + case + " -b2 " + reference + " -o " + bw_tmp + " --operation subtract --scaleFactors " + case_norm + ":" + reference_norm + " -p " + threads + " -e"
-# bamCompare = "bamCoverage -b " + case + " -o " + bw_tmp + " --normalizeUsing RPGC --effectiveGenomeSize 2308125349 -e -p " + threads
+bamCompare = "bamCoverage -b " + case + " -o " + bw_tmp + " --scaleFactor " + case_norm + " -e -p " + threads
 
 wiggleTools = "wiggletools write_bg " + bdg_tmp + " scale " + sampleNorm2spikeNorm + " " + bw_tmp
 sort_bed    = "sort-bed " + bdg_tmp
