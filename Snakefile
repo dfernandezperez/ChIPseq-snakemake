@@ -83,7 +83,7 @@ include: "rules/prepare2GEO.smk"
 # remove those "canceled" jobs after the pipeline ends
 onsuccess:
     shell("""
-    rm -r fastq/;
+    rm -r fastq/
     qselect -u `whoami` -s E | xargs qdel
     """)
 
