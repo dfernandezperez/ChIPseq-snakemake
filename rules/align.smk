@@ -147,9 +147,15 @@ def set_reads_spike2(wildcards, input):
             reads = "scripts/bam2bigwig_spike_noSubtract.py --spike {} --chrSizes ".format(input.spike) + config["ref"]["chr_sizes"]
             return reads
 
+def input_noSubstract(w):
+    if not is_spike(w.sample):
+        return { "case": "02aln/{sample}.bam".format(sample=w.sample) }
+    return { "case": "02aln/{sample}.bam".format(sample=w.sample),
+             "spike": "02aln_dm/{sample}_spike.bam.clean".format(sample=w.sample) }
+
 rule bam2bigwig_noSubstract:
     input: 
-        "02aln/{sample}.bam"
+        unpack(input_noSubstract)
     output:  
         "06bigwig/noSubtract/{sample}.bw"
     params: 
@@ -164,7 +170,7 @@ rule bam2bigwig_noSubstract:
     shell:
         """
         python {params.reads} \
-        --case {input} \
+        --case {input.case} \
         --bigwig {output} \
         --threads {threads} &> {log}
         """
