@@ -118,7 +118,8 @@ rule bam2bigwig:
         "06bigwig/{sample}_{control}-input.bw"
     params: 
         read_exten = set_read_extension,
-        reads = set_reads_spike,
+        reads      = set_reads_spike,
+        params     = config["bam2bigwig"]["other"]
     log: 
         "00log/bam2bw/{sample}_{control}-input_bigwig.bam2bw"
     threads: 
@@ -133,7 +134,8 @@ rule bam2bigwig:
         --case {input.case} \
         --reference {input.reference} \
         --bigwig {output} \
-        --threads {threads} &> {log}
+        --threads {threads} \
+        --otherParams {params.read_exten} {params.params} &> {log}
         """
 
 
@@ -147,20 +149,15 @@ def set_reads_spike2(wildcards, input):
             reads = "scripts/bam2bigwig_spike_noSubtract.py --spike {} --chrSizes ".format(input.spike) + config["ref"]["chr_sizes"]
             return reads
 
-def input_noSubstract(w):
-    if not is_spike(w.sample):
-        return { "case": "02aln/{sample}.bam".format(sample=w.sample) }
-    return { "case": "02aln/{sample}.bam".format(sample=w.sample),
-             "spike": "02aln_dm/{sample}_spike.bam.clean".format(sample=w.sample) }
-
 rule bam2bigwig_noSubstract:
     input: 
-        unpack(input_noSubstract)
+        unpack(get_bam_spike)
     output:  
         "06bigwig/noSubtract/{sample}.bw"
     params: 
         read_exten = set_read_extension,
-        reads = set_reads_spike2,
+        reads      = set_reads_spike2,
+        params     = config["bam2bigwig"]["other"]
     log: 
         "00log/bam2bw/{sample}_bigwig.bam2bw"
     threads: 
@@ -172,12 +169,14 @@ rule bam2bigwig_noSubstract:
         python {params.reads} \
         --case {input.case} \
         --bigwig {output} \
-        --threads {threads} &> {log}
+        --threads {threads} \
+        --otherParams {params.read_exten} {params.params} &> {log}
         """
+
 
 rule bigwig2server:
     input: 
-        bw       =  "06bigwig/noSubtract/{sample}.bw",
+        bw         = "06bigwig/noSubtract/{sample}.bw",
         samblaster = "00log/alignments/rm_dup/{sample}.log"
     output:
         temp("temp_file_{sample}_{control}.txt")
@@ -192,7 +191,8 @@ rule bigwig2server:
             line         = f.readlines()[4] # fifth line contains the number of mapped reads
             match_number = re.match(r'samblaster: Removed (\d.+) of (\d.+) \(', line)
             total_reads  = int(match_number.group(2))-int(match_number.group(1))
-        shell("cp {input} \
+        shell(
+            "cp {input} \
             /hpcnfs/data/DP/UCSC_tracks/Data/bigWig/{sample}_{control}_{user}_{nreads}_{chip}_{antibody}_{genome}_{run}.bigWig".format(
             input    = input.bw,
             sample   = wildcards.sample,
@@ -202,5 +202,6 @@ rule bigwig2server:
             chip     = params.chip,
             antibody = params.antibody,
             genome   = params.genome,
-            run      = params.run))
+            run      = params.run)
+            )
         shell("touch {output}".format(output = output))

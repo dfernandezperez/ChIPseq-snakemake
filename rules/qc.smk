@@ -75,9 +75,7 @@ rule insert_size:
 rule plotFingerprint:
     input: 
         case      = "02aln/{sample}.bam",
-        reference = lambda wildcards: "/hpcnfs/scratch/DP/dfernand/Stamburri/PCGFS_PROJECT/ChIPseq/INPUT/{genome}/input_{control}.bam".format(
-            genome = SAMPLES.GENOME[wildcards.sample], 
-            control = wildcards.control) 
+        reference = config["input"], 
     output: 
         qualMetrics = "01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv",
         raw_counts  = "01qc/fingerPrint/{sample}_{control}.rawcounts.tsv",

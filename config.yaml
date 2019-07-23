@@ -8,7 +8,7 @@ cluster: cluster.yaml
 # Units are technical replicates (e.g. lanes, or resequencing of the same biological
 # sample).
 units: units.tsv
-
+input: "/hpcnfs/scratch/DP/dfernand/Stamburri/PCGFS_PROJECT/ChIPseq/INPUT/mm10/input_{control}.bam"
 
 # Parameters for the software used
 params:
@@ -19,7 +19,7 @@ params:
     se: "--stdin -t 1 -A -Q -L"
     pe: "-t 1 -A -Q -L"
   macs2:
-    pk_calling: "--keep-dup all -m 10 30"
+    pk_calling: "--keep-dup all -m 3 30"
     gsize: mm
     pvalue: 1e-5
     pvalue_broad: 1e-5
@@ -35,20 +35,21 @@ promoter:
 
 ref:
   # Bowtie index for the alignment of the sample
-  index: /hpcnfs/techunits/bioinformatics/refdata/Mus_musculus/UCSC/mm9/Sequence/BowtieIndex/genome
+  index: /hpcnfs/techunits/bioinformatics/refdata/Mus_musculus/UCSC/mm10/Sequence/BowtieIndex/genome
   # Bowtie index for the alignmed of the spike-in, if there is
   index_spike: /hpcnfs/data/DP/dm6/dm6
   # File required by computeGCbias from deeptools
-  2bit: /hpcnfs/data/DP/Databases/mm9.2bit
+  2bit: /hpcnfs/data/DP/Databases/mm10.2bit
   # Used in computeGCbias to ignore repetitive regions in the calculation
-  rep_masker: /hpcnfs/data/DP/Databases/RepeatMasker_noRandom_mm9.bed
+  rep_masker: /hpcnfs/data/DP/Databases/RepeatMasker_noRandom_mm10.bed
   # File required by bdg2bigwig from ucsc
-  chr_sizes: /hpcnfs/data/DP/Databases/mm9.chrom.sizes
+  chr_sizes: /hpcnfs/data/DP/Databases/mm10.chrom.sizes
   # https://deeptools.readthedocs.io/en/latest/content/feature/effectiveGenomeSize.html
   # 2304947926 --> mm9
   # 2308125349 --> mm10
-  egenome_size: 2304947926
+  egenome_size: 2308125349
 
 # Bam2bigwig params
-read_extension: 200
-
+bam2bigwig:
+  read_extension: 200
+  other: "--binSize 50"

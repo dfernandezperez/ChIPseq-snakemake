@@ -40,17 +40,21 @@ def get_bam(wildcards):
 
 def set_read_extension(wildcards):
     if is_single_end(wildcards.sample):
-        return "--extReads " + str(config['read_extension'])
-    return "--extReads"
+        return "--extendReads " + str(config['bam2bigwig']['read_extension'])
+    return "--extendReads"
+
 
 def get_bam_cntrl(wildcards):
     if not is_spike(wildcards.sample):
         return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample),
-            "reference": "/hpcnfs/scratch/DP/dfernand/Stamburri/PCGFS_PROJECT/ChIPseq/INPUT/{genome}/input_{control}.bam".format(
-            genome = SAMPLES.GENOME[wildcards.sample], 
-            control = wildcards.control) }
+            "reference": config["input"] }
     return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample),
-             "reference": "/hpcnfs/scratch/DP/dfernand/Stamburri/PCGFS_PROJECT/ChIPseq/INPUT/{genome}/input_{control}.bam".format(
-             genome = SAMPLES.GENOME[wildcards.sample], 
-             control = wildcards.control),
+             "reference": config["input"],
+             "spike": "02aln_dm/{sample}_spike.bam.clean".format(sample=wildcards.sample) }
+
+
+def get_bam_spike(wildcards):
+    if not is_spike(wildcards.sample):
+        return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample) }
+    return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample),
              "spike": "02aln_dm/{sample}_spike.bam.clean".format(sample=wildcards.sample) }

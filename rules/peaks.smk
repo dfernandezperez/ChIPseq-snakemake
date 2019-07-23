@@ -1,9 +1,7 @@
 rule call_peaks:
     input: 
         case      = "02aln/{sample}.bam",
-        reference = lambda wildcards: "/hpcnfs/scratch/DP/dfernand/Stamburri/PCGFS_PROJECT/ChIPseq/INPUT/{genome}/input_{control}.bam".format(
-            genome = SAMPLES.GENOME[wildcards.sample], 
-            control = wildcards.control) 
+        reference = config["input"]
     output: 
         narrowPeak = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak",
         xls        = "03peak_macs2/{sample}_{control}-input/{sample}_peaks.xls"

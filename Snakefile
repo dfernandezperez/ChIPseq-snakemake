@@ -54,7 +54,7 @@ ALL_PEAKS_GEO    = expand(
 #######################################################################################################################
 ### DEFINE LOCAL RULES TO RUN THE WHOLE PIPELINE OR JUST A SUBSET OF IT
 #######################################################################################################################
-localrules: all, all_noGC, all_server_noGC, geo
+# localrules: all, all_noGC, all_server_noGC, geo
 
 rule all:
     input: ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_BIGWIG_NOSUB

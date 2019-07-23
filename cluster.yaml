@@ -1,6 +1,6 @@
 __default__ :
     cpu         : 1
-    email       : "ieo4462@ieo.it"
+    email       : "`whoami`@ieo.it"
     EmailNotice : "a"
     jname       : "{rule}.{wildcards}"
     output      : ".clusterLogs/{rule}.{wildcards}.out"

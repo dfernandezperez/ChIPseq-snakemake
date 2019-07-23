@@ -1,28 +1,31 @@
 import subprocess
 import pysam
 import os
-from argparse import ArgumentParser
+import argparse
 
 ######################
 ## ARGUMENT PARSING ##
 ######################
-parser = ArgumentParser(description='Bam to bigwig for spike-in samples')
+parser = argparse.ArgumentParser(description='Bam to bigwig for spike-in samples')
 parser.add_argument('-c', '--case', help='case sample bam file', required=True)
 parser.add_argument('-s', '--spike', help='spike-in bam file', required=True)
 parser.add_argument('-b', '--bigwig', help='name for the output bigwig file', required=True)
 parser.add_argument('-x', '--chrSizes', help='Chromosome sizes file', required=True)
 parser.add_argument('-p', '--threads', help='Number of threads to use', required=True)
+parser.add_argument('-o', '--otherParams', help='Extra parameters to deeptools', action='append', nargs=argparse.REMAINDER)
 
 options = parser.parse_args()
 
+params    = options.otherParams
+params    = " ".join(str(e) for e in params[0])
 case      = options.case
 spike     = options.spike
 chr_sizes = options.chrSizes
 threads   = options.threads
 bw        = options.bigwig
 bw_tmp    = bw + ".tmp.bw"
-bdg       = case + ".bdg"
-bdg_tmp   = case + ".tmp.bdg"
+bdg       = bw + ".bdg"
+bdg_tmp   = bw + ".tmp.bdg"
 
 
 ##############################
@@ -57,7 +60,7 @@ print sampleNorm2spikeNorm
 #############################
 ## Bash commands to launch ##
 #############################
-bamCompare = "bamCoverage -b " + case + " -o " + bw_tmp + " --scaleFactor " + case_norm + " -e -p " + threads
+bamCompare = "bamCoverage -b " + case + " -o " + bw_tmp + " --scaleFactor " + case_norm + " -p " + threads + " " + params
 
 wiggleTools = "wiggletools write_bg " + bdg_tmp + " scale " + sampleNorm2spikeNorm + " " + bw_tmp
 sort_bed    = "sort-bed " + bdg_tmp

@@ -1,23 +1,25 @@
 import subprocess
 import pysam
-from argparse import ArgumentParser
+import argparse
 
 ######################
 ## ARGUMENT PARSING ##
 ######################
-parser = ArgumentParser(description='Bam to bigwig with deeptools')
+parser = argparse.ArgumentParser(description='Bam to bigwig with deeptools')
 parser.add_argument('-c', '--case', help='case sample bam file', required=True)
 parser.add_argument('-r', '--reference', help='reference file (input) bam file', required=True)
 parser.add_argument('-b', '--bigwig', help='name for the output bigwig file', required=True)
 parser.add_argument('-p', '--threads', help='Number of threads to use', required=True)
+parser.add_argument('-o', '--otherParams', help='Extra parameters to deeptools', action='append', nargs=argparse.REMAINDER)
 
 options = parser.parse_args()
 
+params    = options.otherParams
+params    = " ".join(str(e) for e in params[0])
 case      = options.case
 reference = options.reference
 threads   = options.threads
 bw        = options.bigwig
-
 
 ##############################
 ## Avoid warning from pysam ##
@@ -45,7 +47,6 @@ case_norm      = str( (1.0/float(c.mapped))*1000000 )
 #############################
 ## Bash commands to launch ##
 #############################
-bamCompare = "bamCompare -b1 " + case + " -b2 " + reference + " -o " + bw + " --operation subtract --scaleFactors " + case_norm + ":" + reference_norm + " -p " + threads + " -e"
-# bamCompare = "bamCoverage -b " + case + " -o " + bw + " --normalizeUsing RPGC --effectiveGenomeSize 2308125349 -e -p " + threads
+bamCompare = "bamCompare -b1 " + case + " -b2 " + reference + " -o " + bw + " --operation subtract --scaleFactors " + case_norm + ":" + reference_norm + " -p " + threads + " " + params
 
 subprocess.call(bamCompare.split())
