@@ -2,7 +2,7 @@ __default__ :
     cpu         : 1
     email       : "`whoami`@ieo.it"
     EmailNotice : "a"
-    jname       : "{rule}.{wildcards}"
+    jname       : "{rule}"
     output      : ".clusterLogs/{rule}.{wildcards}.out"
     error       : ".clusterLogs/{rule}.{wildcards}.err"
     MaxMem      : 8
