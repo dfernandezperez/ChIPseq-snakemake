@@ -51,5 +51,7 @@ ref:
 
 # Bam2bigwig params
 bam2bigwig:
+  # Set the read extension for SE data. For PE data it will be automatically set to the fragment size. To remove this
+  # you have to change directly the code inside the rule bam2bigwig
   read_extension: 200
   other: "--binSize 50"
