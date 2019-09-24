@@ -84,11 +84,12 @@ include: "rules/prepare2GEO.smk"
 onsuccess:
     shell("""
     rm -r fastq/
-    qselect -u `whoami` -s E | xargs qdel
+    qselect -u `whoami` -s E | xargs qdel -Wforce
     """)
 
 onerror:
     print("An error ocurred. Workflow aborted")
     shell("""
+	qselect -u `whoami` -s E | xargs qdel -Wforce
         mail -s "An error occurred. ChIP-seq snakemake workflow aborted" `whoami`@ieo.it < {log}
         """)
