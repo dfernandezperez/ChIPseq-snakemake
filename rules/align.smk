@@ -146,7 +146,7 @@ def set_reads_spike2(wildcards, input):
             reads = "scripts/bam2bigwig_noSubtract.py"
             return reads
         if n == 2:
-            reads = "scripts/bam2bigwig_spike_noSubtract.py --spike {} --chrSizes ".format(input.spike) + config["ref"]["chr_sizes"]
+            reads = "scripts/bam2bigwig_spike_noSubtract.py --spike {}".format(input.spike)
             return reads
 
 rule bam2bigwig_noSubstract:
