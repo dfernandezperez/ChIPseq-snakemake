@@ -55,9 +55,9 @@ rule geo_fastp_se:
 
 rule geo_peaks:
 	input:
-		"03peak_macs2/{sample}_{control}-input/{sample}_peaks_p{pvalue}.bed"
+		"03peak_macs2/{sample}_{control}/{sample}_peaks_p{pvalue}.bed"
 	output:
-		"GEO/peaks/{sample}_{control}-input_peaks_p{pvalue}.bed"
+		"GEO/peaks/{sample}_{control}_peaks_p{pvalue}.bed"
 	log:
 		"00log/GEO/peaks/{sample}_{control}_{pvalue}.log"
 	shell:
@@ -69,9 +69,9 @@ rule geo_peaks:
 rule md5sum_peaks:
 	input:
 		expand(
-			"GEO/peaks/{sample}_{control}-input_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".bed",
+			"GEO/peaks/{sample}_{control}_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".bed",
 			zip,
-			sample  = ALL_SAMPLES,
+			sample  = ALL_IP,
 			control = ALL_CONTROLS
 		)
 	output:
@@ -85,8 +85,8 @@ rule md5sum_peaks:
 
 rule md5sum_fastqs:
 	input:
-		expand("GEO/fastq/{sample}.se.fastq.gz", sample = ALL_SAMPLES_SE),
-		expand(["GEO/fastq/{sample}.1.fastq.gz", "GEO/fastq/{sample}.2.fastq.gz"], sample = ALL_SAMPLES_PE)
+		expand("GEO/fastq/{sample}.se.fastq.gz", sample = ALL_IP_SE),
+		expand(["GEO/fastq/{sample}.1.fastq.gz", "GEO/fastq/{sample}.2.fastq.gz"], sample = ALL_IP_PE)
 	output:
 		"GEO/md5sum/md5sum_fastqs.txt"
 	log:

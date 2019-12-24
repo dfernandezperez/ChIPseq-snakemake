@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import yaml
 from snakemake.utils import validate, min_version
 
@@ -22,31 +23,35 @@ units.index = units.index.set_levels([i.astype(str) for i in units.index.levels]
 #######################################################################################################################
 ### DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE
 #######################################################################################################################
+# Subset the samples that are IP (no inputs)
 # Get the names of the input files and genome version for calling peak and creating bigwig files
-ALL_SAMPLES    = SAMPLES.NAME
-ALL_CONTROLS   = SAMPLES.INPUT
-CONTROLS_G     = SAMPLES.GENOME
+IPS    = SAMPLES[ SAMPLES["IS_INPUT"]==False ]
+ALL_IP       = IPS.NAME
+ALL_CONTROLS = IPS.INPUT
+CONTROLS_G   = IPS.GENOME
 
-ALL_PEAKANNOT    = expand("04peak_annot/{sample}_{control}-input/{sample}_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".annot", zip, sample=ALL_SAMPLES, control=ALL_CONTROLS)
-ALL_PEAKS        = expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.narrowPeak", zip, sample=ALL_SAMPLES, control=ALL_CONTROLS)
-ALL_BIGWIG       = expand("06bigwig/{sample}_{control}-input.bw", zip, sample=ALL_SAMPLES, control=ALL_CONTROLS)
-ALL_GCBIAS       = expand("01qc/GCbias/{sample}_{control}-input_GCbias.pdf", zip, sample=ALL_SAMPLES, control=ALL_CONTROLS)
+
+# Define the output files for the rule ALL
+ALL_PEAKANNOT    = expand("04peak_annot/{sample}_{control}/{sample}_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".annot", zip, sample = ALL_IP, control = ALL_CONTROLS)
+ALL_PEAKS        = expand("03peak_macs2/{sample}_{control}/{sample}_peaks.narrowPeak", zip, sample = ALL_IP, control = ALL_CONTROLS)
+ALL_BROAD_PEAKS  = expand("03peak_macs2/{sample}_{control}/broad/{sample}_peaks.broadPeak", zip, sample=ALL_IP, control=ALL_CONTROLS)
+ALL_BIGWIG       = expand("06bigwig/{sample}_{control}.bw", zip, sample = ALL_IP, control = ALL_CONTROLS)
+ALL_GCBIAS       = expand("01qc/GCbias/{sample}_{control}_GCbias.pdf", zip, sample = ALL_IP, control = ALL_CONTROLS)
 ALL_QC           = ["01qc/multiqc/multiqc_report.html"]
-ALL_BIGWIG_NOSUB = expand("06bigwig/noSubtract/{sample}.bw", sample=ALL_SAMPLES)
-ALL_BW2SERVER    = expand("temp_file_{sample}_{control}.txt",  zip, sample=ALL_SAMPLES, control=ALL_CONTROLS)
-
+ALL_BIGWIG_NOSUB = expand("06bigwig/noSubtract/{sample}.bw", sample = SAMPLES.NAME)
+ALL_BW2SERVER    = expand("temp_file_{sample}_{control}.txt",  zip, sample = ALL_IP, control = ALL_CONTROLS)
 
 
 #-------------------- Set variables and target files to prepare data for GEO upload -----------------------#
-ALL_SAMPLES_SE = set(units[units['fq2'].isnull()]['sample'])
-ALL_SAMPLES_PE = set(units[units['fq2'].notnull()]['sample'])
+ALL_IP_SE = set(units[units['fq2'].isnull()]['sample'])
+ALL_IP_PE = set(units[units['fq2'].notnull()]['sample'])
 
-ALL_FASTQ_GEO_PE = expand(["GEO/fastq/{sample}.1.fastq.gz", "GEO/fastq/{sample}.2.fastq.gz"], sample = ALL_SAMPLES_PE)
-ALL_FASTQ_GEO_SE = expand("GEO/fastq/{sample}.se.fastq.gz", sample = ALL_SAMPLES_SE)
+ALL_FASTQ_GEO_PE = expand(["GEO/fastq/{sample}.1.fastq.gz", "GEO/fastq/{sample}.2.fastq.gz"], sample = ALL_IP_PE)
+ALL_FASTQ_GEO_SE = expand("GEO/fastq/{sample}.se.fastq.gz", sample = ALL_IP_SE)
 ALL_PEAKS_GEO    = expand(
-    "GEO/peaks/{sample}_{control}-input_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".bed", 
+    "GEO/peaks/{sample}_{control}_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".bed", 
     zip, 
-    sample = ALL_SAMPLES,
+    sample = ALL_IP,
     control = ALL_CONTROLS
     )
 
@@ -57,10 +62,13 @@ ALL_PEAKS_GEO    = expand(
 # localrules: all, all_noGC, all_server_noGC, geo
 
 rule all:
-    input: ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_GCBIAS + ALL_BIGWIG_NOSUB
-
-rule all_noGC:
     input:  ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_BIGWIG_NOSUB
+
+rule all_broad:
+    input:  ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_BIGWIG_NOSUB + ALL_BROAD_PEAKS
+
+rule all_GC:
+    input:  ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_BIGWIG_NOSUB + ALL_GCBIAS
 
 rule all_server_noGC:
 	input:   ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_BIGWIG_NOSUB + ALL_BW2SERVER

@@ -8,7 +8,6 @@ cluster: cluster.yaml
 # Units are technical replicates (e.g. lanes, or resequencing of the same biological
 # sample).
 units: units.tsv
-input: "/hpcnfs/scratch/DP/dfernand/Stamburri/PCGFS_PROJECT/ChIPseq/INPUT/mm10/input_{control}.bam"
 
 # Parameters for the software used
 params:

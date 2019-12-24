@@ -75,7 +75,7 @@ rule insert_size:
 rule plotFingerprint:
     input: 
         case      = "02aln/{sample}.bam",
-        reference = config["input"], 
+        reference = "02aln/{control}.bam", 
     output: 
         qualMetrics = "01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv",
         raw_counts  = "01qc/fingerPrint/{sample}_{control}.rawcounts.tsv",
@@ -100,10 +100,10 @@ rule GC_bias:
         bam = "02aln/{sample}.bam",
         bed = rules.filter_peaks.output.bed_filt
     output: 
-        pdf      = "01qc/GCbias/{sample}_{control}-input_GCbias.pdf",
-        freq_txt = "01qc/GCbias/{sample}_{control}-input_GCbias.txt"
+        pdf      = "01qc/GCbias/{sample}_{control}_GCbias.pdf",
+        freq_txt = "01qc/GCbias/{sample}_{control}_GCbias.txt"
     log:
-        "00log/GCbias/{sample}_{control}-input_GCbias.log"
+        "00log/GCbias/{sample}_{control}_GCbias.log"
     params:
         repeatMasker = config["ref"]['rep_masker'],
         tempBed      = "01qc/GCbias/{sample}_Repeatmasker.bed.tmp",
@@ -135,14 +135,14 @@ rule GC_bias:
 # ---------------- MultiQC report ----------------- #
 rule multiQC_inputs:
     input:
-        expand("00log/alignments/{sample}.log", sample = ALL_SAMPLES),
-        expand("01qc/fqc/{sample}_fastqc.zip", sample = ALL_SAMPLES),
-        expand("01qc/insert_size/{sample}.isize.txt", sample = ALL_SAMPLES),
-        expand("01qc/phantompeakqual/{sample}.spp.out", sample = ALL_SAMPLES),
-        expand("00log/alignments/rm_dup/{sample}.log", sample = ALL_SAMPLES),
-        expand("01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv", zip, sample = ALL_SAMPLES, control = ALL_CONTROLS),
-        expand("01qc/fingerPrint/{sample}_{control}.rawcounts.tsv", zip, sample = ALL_SAMPLES, control = ALL_CONTROLS),
-        expand("03peak_macs2/{sample}_{control}-input/{sample}_peaks.xls", zip, sample = ALL_SAMPLES, control = ALL_CONTROLS)
+        expand("00log/alignments/{sample}.log", sample = SAMPLES.NAME),
+        expand("01qc/fqc/{sample}_fastqc.zip", sample = SAMPLES.NAME),
+        expand("01qc/insert_size/{sample}.isize.txt", sample = SAMPLES.NAME),
+        expand("01qc/phantompeakqual/{sample}.spp.out", sample = ALL_IP),
+        expand("00log/alignments/rm_dup/{sample}.log", sample = SAMPLES.NAME),
+        expand("01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv", zip, sample = ALL_IP, control = ALL_CONTROLS),
+        expand("01qc/fingerPrint/{sample}_{control}.rawcounts.tsv", zip, sample = ALL_IP, control = ALL_CONTROLS),
+        expand("03peak_macs2/{sample}_{control}/{sample}_peaks.xls", zip, sample = ALL_IP, control = ALL_CONTROLS)
     output: 
         file = "01qc/multiqc/multiqc_inputs.txt"
     message:

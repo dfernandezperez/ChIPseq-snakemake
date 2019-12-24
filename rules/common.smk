@@ -47,9 +47,9 @@ def set_read_extension(wildcards):
 def get_bam_cntrl(wildcards):
     if not is_spike(wildcards.sample):
         return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample),
-            "reference": config["input"] }
+            "reference": "02aln/{control}.bam" }
     return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample),
-             "reference": config["input"],
+             "reference": "02aln/{control}.bam",
              "spike": "02aln_dm/{sample}_spike.bam.clean".format(sample=wildcards.sample) }
 
 

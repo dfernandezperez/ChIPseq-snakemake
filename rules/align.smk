@@ -115,13 +115,13 @@ rule bam2bigwig:
     input: 
         unpack(get_bam_cntrl)
     output:  
-        "06bigwig/{sample}_{control}-input.bw"
+        "06bigwig/{sample}_{control}.bw"
     params: 
         read_exten = set_read_extension,
         reads      = set_reads_spike,
         params     = config["bam2bigwig"]["other"]
     log: 
-        "00log/bam2bw/{sample}_{control}-input_bigwig.bam2bw"
+        "00log/bam2bw/{sample}_{control}_bigwig.bam2bw"
     threads: 
         CLUSTER["bam2bigwig"]["cpu"]
     message: 
