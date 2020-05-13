@@ -1,7 +1,7 @@
 rule geo_fastp_pe:
 	input:
-		fw = lambda w: expand("fastq/{lane.sample}-{lane.lane}.1.fastq.gz", lane=units.loc[w.sample].itertuples()),
-		rv = lambda w: expand("fastq/{lane.sample}-{lane.lane}.2.fastq.gz", lane=units.loc[w.sample].itertuples())
+		fw = lambda w: expand("/hpcnfs/scratch/temporary/DP/fastq/{lane.sample}-{lane.lane}.1.fastq.gz", lane=units.loc[w.sample].itertuples()),
+		rv = lambda w: expand("/hpcnfs/scratch/temporary/DP/fastq/{lane.sample}-{lane.lane}.2.fastq.gz", lane=units.loc[w.sample].itertuples())
 	output:
 		fastq1 = "GEO/fastq/{sample}.1.fastq.gz",
 		fastq2 = "GEO/fastq/{sample}.2.fastq.gz"
@@ -32,7 +32,7 @@ rule geo_fastp_pe:
 
 rule geo_fastp_se:
 	input:
-		lambda w: expand("fastq/{lane.sample}-{lane.lane}.fastq.gz", lane=units.loc[w.sample].itertuples()),
+		lambda w: expand("/hpcnfs/scratch/temporary/DP/fastq/{lane.sample}-{lane.lane}.fastq.gz", lane=units.loc[w.sample].itertuples()),
 	output:
 		"GEO/fastq/{sample}.se.fastq.gz"
 	log:
