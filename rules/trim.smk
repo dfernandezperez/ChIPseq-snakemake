@@ -5,8 +5,8 @@ rule cp_fastq_pe:
     input:
         get_fastq
     output:
-        fastq1=temp("fastq/{sample}-{lane}.1.fastq.gz"),
-        fastq2=temp("fastq/{sample}-{lane}.2.fastq.gz")
+        fastq1=temp("/hpcnfs/scratch/temporary/DP/fastq/{sample}-{lane}.1.fastq.gz"),
+        fastq2=temp("/hpcnfs/scratch/temporary/DP/fastq/{sample}-{lane}.2.fastq.gz")
     message:
         "Copying fastq files {input}"
     shell:
@@ -20,7 +20,7 @@ rule cp_fastq_se:
     input:
         get_fastq
     output:
-        temp("fastq/{sample}-{lane}.fastq.gz"),
+        temp("/hpcnfs/scratch/temporary/DP/fastq/{sample}-{lane}.fastq.gz"),
     message:
         "Copying fastq files {input}"
     shell:
@@ -31,19 +31,19 @@ rule cp_fastq_se:
 
 rule fastp_pe:
 	input:
-		fw = lambda w: expand("fastq/{lane.sample}-{lane.lane}.1.fastq.gz", lane=units.loc[w.sample].itertuples()),
-		rv = lambda w: expand("fastq/{lane.sample}-{lane.lane}.2.fastq.gz", lane=units.loc[w.sample].itertuples())
+		fw = lambda w: expand("/hpcnfs/scratch/temporary/DP/fastq/{lane.sample}-{lane.lane}.1.fastq.gz", lane=units.loc[w.sample].itertuples()),
+		rv = lambda w: expand("/hpcnfs/scratch/temporary/DP/fastq/{lane.sample}-{lane.lane}.2.fastq.gz", lane=units.loc[w.sample].itertuples())
 	output:
-		fastq1 = temp("fastq/{sample}.1.fastq"),
-		fastq2 = temp("fastq/{sample}.2.fastq")
+		fastq1 = temp("/hpcnfs/scratch/temporary/DP/fastq/{sample}.1.fastq"),
+		fastq2 = temp("/hpcnfs/scratch/temporary/DP/fastq/{sample}.2.fastq")
 	log:
 		"00log/fastp/{sample}.log"
 	threads:
 		CLUSTER["fastp_pe"]["cpu"]
 	params:
 		fastp_params = config["params"]["fastp"]["pe"],
-		tmp_fw       = "fastq/{sample}.1.fastq.tmp.gz",
-		tmp_rv       = "fastq/{sample}.2.fastq.tmp.gz"
+		tmp_fw       = "/hpcnfs/scratch/temporary/DP/fastq/{sample}.1.fastq.tmp.gz",
+		tmp_rv       = "/hpcnfs/scratch/temporary/DP/fastq/{sample}.2.fastq.tmp.gz"
 	message:
 		"Processing fastq files from {input}"
 	shadow:
@@ -65,9 +65,9 @@ rule fastp_pe:
 
 rule fastp_se:
 	input:
-		lambda w: expand("fastq/{lane.sample}-{lane.lane}.fastq.gz", lane=units.loc[w.sample].itertuples()),
+		lambda w: expand("/hpcnfs/scratch/temporary/DP/fastq/{lane.sample}-{lane.lane}.fastq.gz", lane=units.loc[w.sample].itertuples()),
 	output:
-		temp("fastq/{sample}.se.fastq")
+		temp("/hpcnfs/scratch/temporary/DP/fastq/{sample}.se.fastq")
 	log:
 		"00log/fastp/{sample}.log"
 	threads:
