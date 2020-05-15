@@ -1,4 +1,4 @@
-rule geo_fastp_pe:
+rule geo_mergeFastq_pe:
 	input:
 		fw = lambda w: expand("fastq/{lane.sample}-{lane.lane}.1.fastq.gz", lane=units.loc[w.sample].itertuples()),
 		rv = lambda w: expand("fastq/{lane.sample}-{lane.lane}.2.fastq.gz", lane=units.loc[w.sample].itertuples())
@@ -7,50 +7,27 @@ rule geo_fastp_pe:
 		fastq2 = "GEO/fastq/{sample}.2.fastq.gz"
 	log:
 		"00log/GEO_fastp/{sample}.log"
-	threads:
-		CLUSTER["fastp_pe"]["cpu"]
-	params:
-		fastp_params = config["params"]["fastp"]["pe"],
-		tmp_fw       = "GEO/fastq/{sample}.1.fastq.tmp.gz",
-		tmp_rv       = "GEO/fastq/{sample}.2.fastq.tmp.gz"
 	message:
-		"Processing fastq files from {input}"
-	shadow:
-		"minimal"
+		"Merging fastq files from {input}"
 	shell:
 		"""
-		cat {input.fw} > {params.tmp_fw}
-		cat {input.rv} > {params.tmp_rv}
-		fastp -i {params.tmp_fw} \
-		-I {params.tmp_rv} \
-		-o {output.fastq1} \
-		-O {output.fastq2} \
-		-w {threads} \
-		{params.fastp_params} 2> {log}
+		cat {input.fw} > {output.fastq1}
+		cat {input.rv} > {output.fastq1}
 		"""
 
 
-rule geo_fastp_se:
+rule geo_mergeFastq_se:
 	input:
 		lambda w: expand("fastq/{lane.sample}-{lane.lane}.fastq.gz", lane=units.loc[w.sample].itertuples()),
 	output:
 		"GEO/fastq/{sample}.se.fastq.gz"
 	log:
 		"00log/GEO_fastp/{sample}.log"
-	threads:
-		CLUSTER["fastp_se"]["cpu"]
-	params:
-		fastp_params = config["params"]["fastp"]["se"],
 	message:
 		"Processing fastq files from {input}"
-	shadow:
-		"minimal"
 	shell:
 		"""
-		fastp -i {input} \
-        -o {output} \
-		-w {threads} \
-        {params.fastp_params} 2> {log}
+		cat {input} > {output}
 		"""
 
 rule geo_peaks:

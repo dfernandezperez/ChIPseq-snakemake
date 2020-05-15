@@ -7,18 +7,6 @@ __default__ :
     error       : ".clusterLogs/{rule}.{wildcards}.err"
     MaxMem      : 8
 
-fastp_se :
-    cpu : 5
-
-fastp_pe :
-    cpu : 5
-
-geo_fastp_se :
-    cpu : 5
-
-geo_fastp_pe :
-    cpu : 5
-
 fastqc:
     cpu : 5
 

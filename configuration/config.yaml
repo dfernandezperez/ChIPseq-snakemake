@@ -1,13 +1,13 @@
-# path to sample sheet (TSV format, columns: sample, condition, ...)
-samples: samples.txt
+# path (from the repository root) to sample sheet (TSV format, columns: sample, condition, ...)
+samples: configuration/samples.tsv
 
-# Parameters for submitting jobs to cluster via qsub
-cluster: cluster.yaml
-
-# path to sequencing unit sheet (TSV format, columns: sample, unit, fq1, fq2)
+# path (from the repository root) to sequencing unit sheet (TSV format, columns: sample, unit, fq1, fq2)
 # Units are technical replicates (e.g. lanes, or resequencing of the same biological
 # sample).
-units: units.tsv
+units: configuration/units.tsv
+
+# path (from the repository root) to cluster configuration. Parameters for submitting jobs to cluster via qsub
+cluster: configuration/cluster.yaml
 
 # Parameters for the software used
 params:

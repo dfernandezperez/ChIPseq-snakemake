@@ -6,18 +6,21 @@ from snakemake.utils import validate, min_version
 ##### set minimum snakemake version #####
 min_version("5.4.3")
 
-# Singularity image path
+##### Singularity image path
 singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-bioinformatics-singularity-master-chipseq.simg"
+
+##### config file
+configfile: "configuration/config.yaml"
+
 
 #######################################################################################################################
 ### Load sample sheet and cluster configuration, config file
 #######################################################################################################################
-configfile: "config.yaml"
-
-CLUSTER     = yaml.load(open(config['cluster'], 'r'))
 SAMPLES     = pd.read_csv(config['samples'], sep ="\t").set_index("NAME", drop=False).sort_index()
 units       = pd.read_csv(config["units"], dtype=str, sep ="\t").set_index(["sample", "lane"], drop=False).sort_index()
 units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
+
+CLUSTER     = yaml.load(open(config['cluster'], 'r'))
 
 
 #######################################################################################################################
@@ -25,7 +28,7 @@ units.index = units.index.set_levels([i.astype(str) for i in units.index.levels]
 #######################################################################################################################
 # Subset the samples that are IP (no inputs)
 # Get the names of the input files and genome version for calling peak and creating bigwig files
-IPS    = SAMPLES[ SAMPLES["IS_INPUT"]==False ]
+IPS          = SAMPLES[ SAMPLES["IS_INPUT"] == False ]
 ALL_IP       = IPS.NAME
 ALL_CONTROLS = IPS.INPUT
 CONTROLS_G   = IPS.GENOME
@@ -56,22 +59,26 @@ ALL_PEAKS_GEO    = expand(
     )
 
 
-#######################################################################################################################
-### DEFINE LOCAL RULES TO RUN THE WHOLE PIPELINE OR JUST A SUBSET OF IT
-#######################################################################################################################
-# localrules: all, all_noGC, all_server_noGC, geo
+###########################################################################################################################
+### Local rules are rules that won't be submitted to the scheduler but executed in the current session (front-end or node)
+###########################################################################################################################
+localrules: cp_fastq_pe, cp_fastq_se, all, all_broad, GC, server, geo
 
+
+###########################################################################################################################
+### Define multiple outputs based on the output files desired
+###########################################################################################################################
 rule all:
     input:  ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_BIGWIG_NOSUB
 
 rule all_broad:
     input:  ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_BIGWIG_NOSUB + ALL_BROAD_PEAKS
 
-rule all_GC:
-    input:  ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_BIGWIG_NOSUB + ALL_GCBIAS
+rule GC:
+    input:  ALL_GCBIAS
 
-rule all_server_noGC:
-	input:   ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_BIGWIG_NOSUB + ALL_BW2SERVER
+rule server:
+	input:  ALL_BW2SERVER
 
 rule geo:
     input: "GEO/md5sum/md5sum_peaks.txt", "GEO/md5sum/md5sum_fastqs.txt", ALL_PEAKS_GEO + ALL_FASTQ_GEO_SE + ALL_FASTQ_GEO_PE
@@ -90,14 +97,16 @@ include: "rules/prepare2GEO.smk"
 # Since some jobs a lot of times end in E state after finishing (when they're too fast, like creating a soft link),
 # remove those "canceled" jobs after the pipeline ends
 onsuccess:
-    shell("""
+    shell(
+	"""
     rm -r fastq/
     qselect -u `whoami` -s E | xargs qdel -Wforce
     """)
 
 onerror:
     print("An error ocurred. Workflow aborted")
-    shell("""
+    shell(
+	"""
 	qselect -u `whoami` -s E | xargs qdel -Wforce
-        mail -s "An error occurred. ChIP-seq snakemake workflow aborted" `whoami`@ieo.it < {log}
-        """)
+    mail -s "An error occurred. ChIP-seq snakemake workflow aborted" `whoami`@ieo.it < {log}
+    """)

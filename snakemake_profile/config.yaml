@@ -1,0 +1,8 @@
+jobs: 500
+cluster-config: "configuration/cluster.yaml"
+latency-wait: 120
+use-singularity: true
+singularity-args: "--bind /hpcnfs"
+cleanup-shadow: true
+shadow-prefix: "/hpcnfs/scratch/temporary/`whoami`"
+cluster: "qsub -M {cluster.email} -m {cluster.EmailNotice} -N {cluster.jname} -l select=1:ncpus={cluster.cpu}:mem={cluster.MaxMem}gb -o {cluster.output} -e {cluster.error}"
