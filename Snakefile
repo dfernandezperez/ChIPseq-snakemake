@@ -20,8 +20,7 @@ SAMPLES     = pd.read_csv(config['samples'], sep ="\t").set_index("NAME", drop=F
 units       = pd.read_csv(config["units"], dtype=str, sep ="\t").set_index(["sample", "lane"], drop=False).sort_index()
 units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
 
-CLUSTER     = yaml.load(open(config['cluster'], 'r'))
-
+CLUSTER     = yaml.load(open(config['cluster'], 'r'), Loader=yaml.FullLoader)
 
 #######################################################################################################################
 ### DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE

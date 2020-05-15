@@ -9,27 +9,27 @@ def is_spike(sample):
 def get_trimmed(wildcards):
     if not is_single_end(**wildcards):
         # paired-end sample
-        return expand("fastq/{sample}.{group}.fastq", group=[1, 2], **wildcards)
+        return expand("{tmp}/fastq/{sample}.{group}.fastq.gz", group=[1, 2], tmp=config["tmp"], **wildcards)
     # single end sample
-    return "fastq/{sample}.se.fastq".format(**wildcards)
+    return "{tmp}/fastq/{sample}.se.fastq.gz".format(tmp=config["tmp"], **wildcards)
 
 
 def get_trimmed_spike(wildcards):
     if is_spike(**wildcards):
         if not is_single_end(**wildcards):
             # paired-end sample
-            return expand("fastq/{sample}.{group}.fastq", group=[1, 2], **wildcards)
+            return expand("{tmp}/fastq/{sample}.{group}.fastq.gz", group=[1, 2], tmp=config["tmp"], **wildcards)
         # single end sample
-        return "fastq/{sample}.se.fastq".format(**wildcards)
+        return "{tmp}/fastq/{sample}.se.fastq.gz".format(tmp=config["tmp"], **wildcards)
 
 
 # Used to use just the forward reads to create the fastqc report
 def get_trimmed_forward(wildcards):
     if not is_single_end(**wildcards):
         # paired-end sample
-        return "fastq/{sample}.1.fastq".format(**wildcards)
+        return "{tmp}/fastq/{sample}.1.fastq.gz".format(tmp=config["tmp"], **wildcards)
     # single end sample
-    return "fastq/{sample}.se.fastq".format(**wildcards)
+    return "{tmp}/fastq/{sample}.se.fastq.gz".format(tmp=config["tmp"], **wildcards)
 
 
 def get_bam(wildcards):

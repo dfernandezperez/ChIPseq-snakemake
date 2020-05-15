@@ -9,6 +9,14 @@ units: configuration/units.tsv
 # path (from the repository root) to cluster configuration. Parameters for submitting jobs to cluster via qsub
 cluster: configuration/cluster.yaml
 
+# Prefix to temporary
+# Some files -such as fastq- occupy a lot of space. To avoid space problems during the processing of the pipelines
+# we can use the temporary scratch of hpcnfs or the scratch directory of each node.
+# Just write the prefix-path where you want to put those files, or write '.' to have them in the workdir.
+# By now just fastq files will be located in this folder
+# IMPORTANT: if you have running multiple snakemake pipelines with the same tmp folder all the fastq files will be located togeter. Care with the sample names to not be repeated.
+tmp: /hpcnfs/scratch/temporary/snakemake_test
+
 # Parameters for the software used
 params:
   bowtie: 

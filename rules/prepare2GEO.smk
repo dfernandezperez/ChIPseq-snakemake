@@ -12,7 +12,7 @@ rule geo_mergeFastq_pe:
 	shell:
 		"""
 		cat {input.fw} > {output.fastq1}
-		cat {input.rv} > {output.fastq1}
+		cat {input.rv} > {output.fastq2}
 		"""
 
 
@@ -24,7 +24,7 @@ rule geo_mergeFastq_se:
 	log:
 		"00log/GEO_fastp/{sample}.log"
 	message:
-		"Processing fastq files from {input}"
+		"Merging fastq files from {input}"
 	shell:
 		"""
 		cat {input} > {output}
