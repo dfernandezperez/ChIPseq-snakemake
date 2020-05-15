@@ -1,6 +1,6 @@
 # Pasini's lab ChIP-seq pipeline
 
-Snakemake-based ChIP-seq pipeline for being run in our PBS-based HPC.
+Snakemake-based ChIP-seq pipeline to be run in our PBS-based HPC using singularity containers. The singularity image that is used to run this pipeline is created from [this](https://github.com/dfernandezperez/Docker/blob/master/ChIP-seq/Dockerfile) docker container.
 
 ## Setup
 
