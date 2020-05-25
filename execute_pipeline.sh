@@ -2,4 +2,4 @@
 mkdir -p .clusterLogs # Create folder to store the cluster output and error files
 snakemake -j 1 --cleanup-shadow 
 snakemake -j 1 --unlock
-nohup snakemake --profile ./snakemake_profile "$@" &>> snakemake.log&
+nohup snakemake --profile workflow/snakemake_profile "$@" &>> snakemake.log&
