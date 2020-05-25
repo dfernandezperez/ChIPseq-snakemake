@@ -19,8 +19,8 @@ align_spike:
     MaxMem : 20
 
 phantom_peak_qual:
-	cpu : 1
-	MaxMem : 16
+    cpu : 1
+    MaxMem : 16
 
 plotFingerprint:
     cpu : 1

@@ -34,8 +34,8 @@ def get_trimmed_forward(wildcards):
 
 def get_bam(wildcards):
     if not is_spike(**wildcards):
-        return "02aln/{sample}.bam.tmp".format(**wildcards)
-    return "02aln/{sample}.bam.tmp.clean".format(**wildcards)
+        return "results/02aln/{sample}.bam.tmp".format(**wildcards)
+    return "results/02aln/{sample}.bam.tmp.clean".format(**wildcards)
 
 
 def set_read_extension(wildcards):
@@ -46,15 +46,15 @@ def set_read_extension(wildcards):
 
 def get_bam_cntrl(wildcards):
     if not is_spike(wildcards.sample):
-        return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample),
-            "reference": "02aln/{control}.bam" }
-    return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample),
-             "reference": "02aln/{control}.bam",
-             "spike": "02aln_dm/{sample}_spike.bam.clean".format(sample=wildcards.sample) }
+        return { "case": "results/02aln/{sample}.bam".format(sample=wildcards.sample),
+            "reference": "results/02aln/{control}.bam" }
+    return { "case": "results/02aln/{sample}.bam".format(sample=wildcards.sample),
+             "reference": "results/02aln/{control}.bam",
+             "spike": "results/02aln_dm/{sample}_spike.bam.clean".format(sample=wildcards.sample) }
 
 
 def get_bam_spike(wildcards):
     if not is_spike(wildcards.sample):
-        return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample) }
-    return { "case": "02aln/{sample}.bam".format(sample=wildcards.sample),
-             "spike": "02aln_dm/{sample}_spike.bam.clean".format(sample=wildcards.sample) }
+        return { "case": "results/02aln/{sample}.bam".format(sample=wildcards.sample) }
+    return { "case": "results/02aln/{sample}.bam".format(sample=wildcards.sample),
+             "spike": "results/02aln_dm/{sample}_spike.bam.clean".format(sample=wildcards.sample) }

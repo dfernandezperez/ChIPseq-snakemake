@@ -30,33 +30,33 @@ rule cp_fastq_se:
 
 
 rule mergeFastq_pe:
-	input:
-		fw = lambda w: expand("fastq/{lane.sample}-{lane.lane}.1.fastq.gz", lane=units.loc[w.sample].itertuples()),
-		rv = lambda w: expand("fastq/{lane.sample}-{lane.lane}.2.fastq.gz", lane=units.loc[w.sample].itertuples())
-	output:
-		fastq1 = temp("{tmp}/fastq/{{sample}}.1.fastq.gz".format(tmp=config["tmp"])),
-		fastq2 = temp("{tmp}/fastq/{{sample}}.2.fastq.gz".format(tmp=config["tmp"]))
-	log:
-		"00log/fastp/{sample}.log"
-	message:
-		"Merging fastq files from {input}"
-	shell:
-		"""
-		cat {input.fw} > {output.fastq1}
-		cat {input.rv} > {output.fastq2}
-		"""
+    input:
+        fw = lambda w: expand("fastq/{lane.sample}-{lane.lane}.1.fastq.gz", lane=units.loc[w.sample].itertuples()),
+        rv = lambda w: expand("fastq/{lane.sample}-{lane.lane}.2.fastq.gz", lane=units.loc[w.sample].itertuples())
+    output:
+        fastq1 = temp("{tmp}/fastq/{{sample}}.1.fastq.gz".format(tmp=config["tmp"])),
+        fastq2 = temp("{tmp}/fastq/{{sample}}.2.fastq.gz".format(tmp=config["tmp"]))
+    log:
+        "results/00log/fastp/{sample}.log"
+    message:
+        "Merging fastq files from {input}"
+    shell:
+        """
+        cat {input.fw} > {output.fastq1}
+        cat {input.rv} > {output.fastq2}
+        """
 
 
 rule mergeFastq_se:
-	input:
-		lambda w: expand("fastq/{lane.sample}-{lane.lane}.fastq.gz", lane=units.loc[w.sample].itertuples()),
-	output:
-		temp("{tmp}/fastq/{{sample}}.se.fastq.gz".format(tmp=config["tmp"]))
-	log:
-		"00log/fastp/{sample}.log"
-	message:
-		"Merging fastq files from {input}"
-	shell:
-		"""
-		cat {input} > {output}
-		"""
+    input:
+        lambda w: expand("fastq/{lane.sample}-{lane.lane}.fastq.gz", lane=units.loc[w.sample].itertuples()),
+    output:
+        temp("{tmp}/fastq/{{sample}}.se.fastq.gz".format(tmp=config["tmp"]))
+    log:
+        "results/00log/fastp/{sample}.log"
+    message:
+        "Merging fastq files from {input}"
+    shell:
+        """
+        cat {input} > {output}
+        """

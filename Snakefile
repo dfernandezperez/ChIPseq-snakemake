@@ -34,24 +34,24 @@ CONTROLS_G   = IPS.GENOME
 
 
 # Define the output files for the rule ALL
-ALL_PEAKANNOT    = expand("04peak_annot/{sample}_{control}/{sample}_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".annot", zip, sample = ALL_IP, control = ALL_CONTROLS)
-ALL_PEAKS        = expand("03peak_macs2/{sample}_{control}/{sample}_peaks.narrowPeak", zip, sample = ALL_IP, control = ALL_CONTROLS)
-ALL_BROAD_PEAKS  = expand("03peak_macs2/{sample}_{control}/broad/{sample}_peaks.broadPeak", zip, sample=ALL_IP, control=ALL_CONTROLS)
-ALL_BIGWIG       = expand("06bigwig/{sample}_{control}.bw", zip, sample = ALL_IP, control = ALL_CONTROLS)
-ALL_GCBIAS       = expand("01qc/GCbias/{sample}_{control}_GCbias.pdf", zip, sample = ALL_IP, control = ALL_CONTROLS)
-ALL_QC           = ["01qc/multiqc/multiqc_report.html"]
-ALL_BIGWIG_NOSUB = expand("06bigwig/noSubtract/{sample}.bw", sample = SAMPLES.NAME)
-ALL_BW2SERVER    = expand("temp_file_{sample}_{control}.txt",  zip, sample = ALL_IP, control = ALL_CONTROLS)
+ALL_PEAKANNOT    = expand("results/04peak_annot/{sample}_{control}/{sample}_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".annot", zip, sample = ALL_IP, control = ALL_CONTROLS)
+ALL_PEAKS        = expand("results/03peak_macs2/{sample}_{control}/{sample}_peaks.narrowPeak", zip, sample = ALL_IP, control = ALL_CONTROLS)
+ALL_BROAD_PEAKS  = expand("results/03peak_macs2/{sample}_{control}/broad/{sample}_peaks.broadPeak", zip, sample=ALL_IP, control=ALL_CONTROLS)
+ALL_BIGWIG       = expand("results/06bigwig/{sample}_{control}.bw", zip, sample = ALL_IP, control = ALL_CONTROLS)
+ALL_GCBIAS       = expand("results/01qc/GCbias/{sample}_{control}_GCbias.pdf", zip, sample = ALL_IP, control = ALL_CONTROLS)
+ALL_QC           = ["results/01qc/multiqc/multiqc_report.html"]
+ALL_BIGWIG_NOSUB = expand("results/06bigwig/noSubtract/{sample}.bw", sample = SAMPLES.NAME)
+ALL_BW2SERVER    = expand("results/temp_file_{sample}_{control}.txt",  zip, sample = ALL_IP, control = ALL_CONTROLS)
 
 
 #-------------------- Set variables and target files to prepare data for GEO upload -----------------------#
 ALL_IP_SE = set(units[units['fq2'].isnull()]['sample'])
 ALL_IP_PE = set(units[units['fq2'].notnull()]['sample'])
 
-ALL_FASTQ_GEO_PE = expand(["GEO/fastq/{sample}.1.fastq.gz", "GEO/fastq/{sample}.2.fastq.gz"], sample = ALL_IP_PE)
-ALL_FASTQ_GEO_SE = expand("GEO/fastq/{sample}.se.fastq.gz", sample = ALL_IP_SE)
+ALL_FASTQ_GEO_PE = expand(["results/GEO/fastq/{sample}.1.fastq.gz", "results/GEO/fastq/{sample}.2.fastq.gz"], sample = ALL_IP_PE)
+ALL_FASTQ_GEO_SE = expand("results/GEO/fastq/{sample}.se.fastq.gz", sample = ALL_IP_SE)
 ALL_PEAKS_GEO    = expand(
-    "GEO/peaks/{sample}_{control}_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".bed", 
+    "results/GEO/peaks/{sample}_{control}_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".bed", 
     zip, 
     sample = ALL_IP,
     control = ALL_CONTROLS
@@ -77,10 +77,10 @@ rule GC:
     input:  ALL_GCBIAS
 
 rule server:
-	input:  ALL_BW2SERVER
+    input:  ALL_BW2SERVER
 
 rule geo:
-    input: "GEO/md5sum/md5sum_peaks.txt", "GEO/md5sum/md5sum_fastqs.txt", ALL_PEAKS_GEO + ALL_FASTQ_GEO_SE + ALL_FASTQ_GEO_PE
+    input: "results/GEO/md5sum/md5sum_peaks.txt", "results/GEO/md5sum/md5sum_fastqs.txt", ALL_PEAKS_GEO + ALL_FASTQ_GEO_SE + ALL_FASTQ_GEO_PE
 
 
 ##### load rules #####
@@ -97,7 +97,7 @@ include: "rules/prepare2GEO.smk"
 # remove those "canceled" jobs after the pipeline ends
 onsuccess:
     shell(
-	"""
+    """
     rm -r fastq/
     qselect -u `whoami` -s E | xargs qdel -Wforce
     """)
@@ -105,7 +105,7 @@ onsuccess:
 onerror:
     print("An error ocurred. Workflow aborted")
     shell(
-	"""
-	qselect -u `whoami` -s E | xargs qdel -Wforce
+    """
+    qselect -u `whoami` -s E | xargs qdel -Wforce
     mail -s "An error occurred. ChIP-seq snakemake workflow aborted" `whoami`@ieo.it < {log}
     """)

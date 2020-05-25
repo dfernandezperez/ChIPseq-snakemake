@@ -12,8 +12,8 @@ rule align:
     input:
         get_trimmed
     output:
-         bam   = temp("02aln/{sample}.bam.tmp"),
-         index = temp("02aln/{sample}.bam.tmp.bai")
+         bam   = temp("results/02aln/{sample}.bam.tmp"),
+         index = temp("results/02aln/{sample}.bam.tmp.bai")
     threads:
         CLUSTER["align"]["cpu"]
     params:
@@ -23,8 +23,8 @@ rule align:
     message:
         "Aligning {input} with parameters {params.bowtie}"
     log:
-       align   = "00log/alignments/{sample}.log",
-       rm_dups = "00log/alignments/rm_dup/{sample}.log",
+       align   = "results/00log/alignments/{sample}.log",
+       rm_dups = "results/00log/alignments/rm_dup/{sample}.log",
     benchmark:
         ".benchmarks/{sample}.align.benchmark.txt"
     shell:
@@ -41,8 +41,8 @@ rule align_spike:
     input:
         get_trimmed_spike
     output:
-        bam   = temp("02aln_dm/{sample}_spike.bam"),
-        index = temp("02aln_dm/{sample}_spike.bam.bai")
+        bam   = temp("results/02aln_dm/{sample}_spike.bam"),
+        index = temp("results/02aln_dm/{sample}_spike.bam.bai")
     threads:
         CLUSTER["align"]["cpu"]
     params:
@@ -52,8 +52,8 @@ rule align_spike:
     message:
         "Aligning {input} with parameters {params.bowtie}"
     log:
-       align   = "00log/alignments/{sample}_spike.log",
-       rm_dups = "00log/alignments/rm_dup/{sample}_spike.log",
+       align   = "results/00log/alignments/{sample}_spike.log",
+       rm_dups = "results/00log/alignments/rm_dup/{sample}_spike.log",
     benchmark:
         ".benchmarks/{sample}.alignSpike.benchmark.txt"
     shell:
@@ -68,15 +68,15 @@ rule align_spike:
 
 rule clean_spike:
     input:
-        mm          = "02aln/{sample}.bam.tmp",
-        spike       = "02aln_dm/{sample}_spike.bam",
-        mm_index    = "02aln/{sample}.bam.tmp.bai",
-        spike_index = "02aln_dm/{sample}_spike.bam.bai",
+        mm          = "results/02aln/{sample}.bam.tmp",
+        spike       = "results/02aln_dm/{sample}_spike.bam",
+        mm_index    = "results/02aln/{sample}.bam.tmp.bai",
+        spike_index = "results/02aln_dm/{sample}_spike.bam.bai",
     output:
-        mm    = temp("02aln/{sample}.bam.tmp.clean"),
-        spike = "02aln_dm/{sample}_spike.bam.clean"
+        mm    = temp("results/02aln/{sample}.bam.tmp.clean"),
+        spike = "results/02aln_dm/{sample}_spike.bam.clean"
     log:
-        "00log/alignments/{sample}.removeSpikeDups"
+        "results/00log/alignments/{sample}.removeSpikeDups"
     shell:
         """
         python scripts/remove_spikeDups.py {input} &> {log}      
@@ -90,9 +90,9 @@ rule update_bam:
     input:
         get_bam
     output:
-        "02aln/{sample}.bam",
+        "results/02aln/{sample}.bam",
     log:
-        "00log/alignments/{sample}.update_bam"
+        "results/00log/alignments/{sample}.update_bam"
     shell:
         """
         cp {input} {output}
@@ -115,13 +115,13 @@ rule bam2bigwig:
     input: 
         unpack(get_bam_cntrl)
     output:  
-        "06bigwig/{sample}_{control}.bw"
+        "results/06bigwig/{sample}_{control}.bw"
     params: 
         read_exten = set_read_extension,
         reads      = set_reads_spike,
         params     = config["bam2bigwig"]["other"]
     log: 
-        "00log/bam2bw/{sample}_{control}_bigwig.bam2bw"
+        "results/00log/bam2bw/{sample}_{control}_bigwig.bam2bw"
     threads: 
         CLUSTER["bam2bigwig"]["cpu"]
     message: 
@@ -153,13 +153,13 @@ rule bam2bigwig_noSubstract:
     input: 
         unpack(get_bam_spike)
     output:  
-        "06bigwig/noSubtract/{sample}.bw"
+        "results/06bigwig/noSubtract/{sample}.bw"
     params: 
         read_exten = set_read_extension,
         reads      = set_reads_spike2,
         params     = config["bam2bigwig"]["other"]
     log: 
-        "00log/bam2bw/{sample}_bigwig.bam2bw"
+        "results/00log/bam2bw/{sample}_bigwig.bam2bw"
     threads: 
         CLUSTER["bam2bigwig"]["cpu"]
     message: 
@@ -176,11 +176,11 @@ rule bam2bigwig_noSubstract:
 
 rule bigwig2server:
     input: 
-        bw         = "06bigwig/noSubtract/{sample}.bw",
-        samblaster = "00log/alignments/rm_dup/{sample}.log",
-        bowtie     = "00log/alignments/{sample}.log"
+        bw         = "results/06bigwig/noSubtract/{sample}.bw",
+        samblaster = "results/00log/alignments/rm_dup/{sample}.log",
+        bowtie     = "results/00log/alignments/{sample}.log"
     output:
-        temp("temp_file_{sample}_{control}.txt")
+        temp("results/temp_file_{sample}_{control}.txt")
     params:
         user     = lambda wildcards : SAMPLES.USER[wildcards.sample],
         antibody = lambda wildcards : SAMPLES.AB[wildcards.sample],

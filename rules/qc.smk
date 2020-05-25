@@ -3,12 +3,12 @@ rule fastqc:
     input:  
         get_trimmed_forward
     output: 
-        "01qc/fqc/{sample}_fastqc.zip"
+        "results/01qc/fqc/{sample}_fastqc.zip"
     log:    
-        "00log/fqc/{sample}.log"
+        "results/00log/fqc/{sample}.log"
     params:
-        folder_name = "01qc/fqc/",
-        tmp = "01qc/fqc/{sample}.fastq"
+        folder_name = "results/01qc/fqc/",
+        tmp = "results/01qc/fqc/{sample}.fastq"
     threads: 
         CLUSTER["fastqc"]["cpu"]
     message: 
@@ -27,15 +27,15 @@ rule fastqc:
 # ------- PhantomPeakQual ------- #
 rule phantom_peak_qual:
     input: 
-        "02aln/{sample}.bam"
+        "results/02aln/{sample}.bam"
     output:
-        "01qc/phantompeakqual/{sample}.spp.out"
+        "results/01qc/phantompeakqual/{sample}.spp.out"
     log:
-        "00log/phantompeakqual/{sample}_phantompeakqual.log"
+        "results/00log/phantompeakqual/{sample}_phantompeakqual.log"
     threads:
         CLUSTER["phantom_peak_qual"]["cpu"]
     params:
-        out_dir = "01qc/phantompeakqual"
+        out_dir = "results/01qc/phantompeakqual"
     message:
         "Running phantompeakqual for {wildcards.sample}"
     benchmark:
@@ -50,12 +50,12 @@ rule phantom_peak_qual:
 # ------- InsertSize calculation ------- #
 rule insert_size:
     input:
-        "02aln/{sample}.bam"
+        "results/02aln/{sample}.bam"
     output:
-        txt="01qc/insert_size/{sample}.isize.txt",
-        pdf="01qc/insert_size/{sample}.isize.pdf"
+        txt="results/01qc/insert_size/{sample}.isize.txt",
+        pdf="results/01qc/insert_size/{sample}.isize.pdf"
     log:
-        "00log/picard/insert_size/{sample}.log"
+        "results/00log/picard/insert_size/{sample}.log"
     params:
         # optional parameters (e.g. relax checks as below)
         "VALIDATION_STRINGENCY=LENIENT "
@@ -74,14 +74,14 @@ rule insert_size:
 # ------- Deeptools quality control ------- #
 rule plotFingerprint:
     input: 
-        case      = "02aln/{sample}.bam",
-        reference = "02aln/{control}.bam", 
+        case      = "results/02aln/{sample}.bam",
+        reference = "results/02aln/{control}.bam", 
     output: 
-        qualMetrics = "01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv",
-        raw_counts  = "01qc/fingerPrint/{sample}_{control}.rawcounts.tsv",
-        plot        = "01qc/fingerPrint/{sample}_{control}.plot.pdf",
+        qualMetrics = "results/01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv",
+        raw_counts  = "results/01qc/fingerPrint/{sample}_{control}.rawcounts.tsv",
+        plot        = "results/01qc/fingerPrint/{sample}_{control}.plot.pdf",
     log:
-        "00log/plotFingerprint/{sample}_{control}.log"
+        "results/00log/plotFingerprint/{sample}_{control}.log"
     params:
         read_exten = set_read_extension,
     threads:
@@ -97,16 +97,16 @@ rule plotFingerprint:
 
 rule GC_bias:
     input: 
-        bam = "02aln/{sample}.bam",
+        bam = "results/02aln/{sample}.bam",
         bed = rules.filter_peaks.output.bed_filt
     output: 
-        pdf      = "01qc/GCbias/{sample}_{control}_GCbias.pdf",
-        freq_txt = "01qc/GCbias/{sample}_{control}_GCbias.txt"
+        pdf      = "results/01qc/GCbias/{sample}_{control}_GCbias.pdf",
+        freq_txt = "results/01qc/GCbias/{sample}_{control}_GCbias.txt"
     log:
-        "00log/GCbias/{sample}_{control}_GCbias.log"
+        "results/00log/GCbias/{sample}_{control}_GCbias.log"
     params:
         repeatMasker = config["ref"]['rep_masker'],
-        tempBed      = "01qc/GCbias/{sample}_Repeatmasker.bed.tmp",
+        tempBed      = "results/01qc/GCbias/{sample}_Repeatmasker.bed.tmp",
         bit_file     = config["ref"]["2bit"],
         egenome_size = config["ref"]["egenome_size"]
     threads:
@@ -135,16 +135,16 @@ rule GC_bias:
 # ---------------- MultiQC report ----------------- #
 rule multiQC_inputs:
     input:
-        expand("00log/alignments/{sample}.log", sample = SAMPLES.NAME),
-        expand("01qc/fqc/{sample}_fastqc.zip", sample = SAMPLES.NAME),
-        expand("01qc/insert_size/{sample}.isize.txt", sample = SAMPLES.NAME),
-        expand("01qc/phantompeakqual/{sample}.spp.out", sample = ALL_IP),
-        expand("00log/alignments/rm_dup/{sample}.log", sample = SAMPLES.NAME),
-        expand("01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv", zip, sample = ALL_IP, control = ALL_CONTROLS),
-        expand("01qc/fingerPrint/{sample}_{control}.rawcounts.tsv", zip, sample = ALL_IP, control = ALL_CONTROLS),
-        expand("03peak_macs2/{sample}_{control}/{sample}_peaks.xls", zip, sample = ALL_IP, control = ALL_CONTROLS)
+        expand("results/00log/alignments/{sample}.log", sample = SAMPLES.NAME),
+        expand("results/01qc/fqc/{sample}_fastqc.zip", sample = SAMPLES.NAME),
+        expand("results/01qc/insert_size/{sample}.isize.txt", sample = SAMPLES.NAME),
+        expand("results/01qc/phantompeakqual/{sample}.spp.out", sample = ALL_IP),
+        expand("results/00log/alignments/rm_dup/{sample}.log", sample = SAMPLES.NAME),
+        expand("results/01qc/fingerPrint/{sample}_{control}.qualityMetrics.tsv", zip, sample = ALL_IP, control = ALL_CONTROLS),
+        expand("results/01qc/fingerPrint/{sample}_{control}.rawcounts.tsv", zip, sample = ALL_IP, control = ALL_CONTROLS),
+        expand("results/03peak_macs2/{sample}_{control}/{sample}_peaks.xls", zip, sample = ALL_IP, control = ALL_CONTROLS)
     output: 
-        file = "01qc/multiqc/multiqc_inputs.txt"
+        file = "results/01qc/multiqc/multiqc_inputs.txt"
     message:
         "create file containing all multiqc input files"
     run:
@@ -154,14 +154,14 @@ rule multiQC_inputs:
 
 rule multiQC:
     input:
-        "01qc/multiqc/multiqc_inputs.txt"
+        "results/01qc/multiqc/multiqc_inputs.txt"
     output: 
-        "01qc/multiqc/multiqc_report.html"
+        "results/01qc/multiqc/multiqc_report.html"
     params:
         log_name = "multiqc_report",
-        folder   = "01qc/multiqc"
+        folder   = "results/01qc/multiqc"
     log:
-        "00log/multiqc/multiqc.log"
+        "results/00log/multiqc/multiqc.log"
     message:
         "multiqc for all logs"
     shell:
