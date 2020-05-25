@@ -177,7 +177,8 @@ rule bam2bigwig_noSubstract:
 rule bigwig2server:
     input: 
         bw         = "06bigwig/noSubtract/{sample}.bw",
-        samblaster = "00log/alignments/rm_dup/{sample}.log"
+        samblaster = "00log/alignments/rm_dup/{sample}.log",
+        bowtie     = "00log/alignments/{sample}.log"
     output:
         temp("temp_file_{sample}_{control}.txt")
     params:
@@ -187,10 +188,21 @@ rule bigwig2server:
         run      = lambda wildcards : SAMPLES.RUN[wildcards.sample],
         chip     = lambda wildcards : str("ChIPseq") if SAMPLES.SPIKE[wildcards.sample] == False else str("ChIPseqSpike")
     run:
-        with open (input.samblaster, "r") as f:
-            line         = f.readlines()[4] # fifth line contains the number of mapped reads
-            match_number = re.match(r'samblaster: Removed (\d.+) of (\d.+) \(', line)
-            total_reads  = int(match_number.group(2))-int(match_number.group(1))
+        # Get number of removed reported reads by bowtie
+        with open(input.bowtie,"r") as fi:
+            for ln in fi:
+                if ln.startswith("# reads with at least one reported alignment:"):
+                    nreads = int( str.split(ln)[8] )
+
+        # Get number of removed reads
+        with open(input.samblaster,"r") as fi:
+            for ln in fi:
+                if ln.startswith("samblaster: Removed "):
+                    removed_reads = int( str.split(ln)[2] )
+
+        # Total number of final reads is reported by bowtie minus duplicated removed
+        total_reads = nreads-removed_reads
+
         shell(
             "cp {input} \
             /hpcnfs/data/DP/UCSC_tracks/Data/bigWig/{sample}_{control}_{user}_{nreads}_{chip}_{antibody}_{genome}_{run}.bigWig".format(
