@@ -13,18 +13,19 @@ singularity: "/hpcnfs/data/DP/Singularity/dfernandezperez-bioinformatics-singula
 configfile: "configuration/config.yaml"
 
 
-#######################################################################################################################
-### Load sample sheet and cluster configuration, config file
-#######################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------
+# Load sample sheet and cluster configuration, config file
+#-----------------------------------------------------------------------------------------------------------------------
 SAMPLES     = pd.read_csv(config['samples'], sep ="\t").set_index("NAME", drop=False).sort_index()
 units       = pd.read_csv(config["units"], dtype=str, sep ="\t").set_index(["sample", "lane"], drop=False).sort_index()
 units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
 
 CLUSTER     = yaml.load(open(config['cluster'], 'r'), Loader=yaml.FullLoader)
 
-#######################################################################################################################
-### DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE
-#######################################################################################################################
+
+#-----------------------------------------------------------------------------------------------------------------------
+# DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE
+#-----------------------------------------------------------------------------------------------------------------------
 # Subset the samples that are IP (no inputs)
 # Get the names of the input files and genome version for calling peak and creating bigwig files
 IPS          = SAMPLES[ SAMPLES["IS_INPUT"] == False ]
@@ -58,28 +59,28 @@ ALL_PEAKS_GEO    = expand(
     )
 
 
-###########################################################################################################################
-### Local rules are rules that won't be submitted to the scheduler but executed in the current session (front-end or node)
-###########################################################################################################################
-localrules: cp_fastq_pe, cp_fastq_se, all, all_broad, GC, server, geo
+#-----------------------------------------------------------------------------------------------------------------------
+# Local rules are rules that won't be submitted to the scheduler but executed in the current session (front-end or node)
+#-----------------------------------------------------------------------------------------------------------------------
+localrules: cp_fastq_pe, cp_fastq_se, filter_peaks, all, all_broad, all_GC, all_server, all_geo
 
 
-###########################################################################################################################
-### Define multiple outputs based on the output files desired
-###########################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------
+# Define multiple outputs based on the output files desired
+#-----------------------------------------------------------------------------------------------------------------------
 rule all:
     input:  ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_BIGWIG_NOSUB
 
 rule all_broad:
     input:  ALL_PEAKS + ALL_PEAKANNOT + ALL_BIGWIG + ALL_QC + ALL_BIGWIG_NOSUB + ALL_BROAD_PEAKS
 
-rule GC:
+rule all_GC:
     input:  ALL_GCBIAS
 
-rule server:
+rule all_server:
     input:  ALL_BW2SERVER
 
-rule geo:
+rule all_geo:
     input: "results/GEO/md5sum/md5sum_peaks.txt", "results/GEO/md5sum/md5sum_fastqs.txt", ALL_PEAKS_GEO + ALL_FASTQ_GEO_SE + ALL_FASTQ_GEO_PE
 
 
@@ -99,13 +100,13 @@ onsuccess:
     shell(
     """
     rm -r fastq/
-    qselect -u `whoami` -s E | xargs qdel -Wforce
+    qselect -u `whoami` -s E | xargs qdel -Wforce # Make sure we delete jobs in E state
     """)
 
 onerror:
     print("An error ocurred. Workflow aborted")
     shell(
     """
-    qselect -u `whoami` -s E | xargs qdel -Wforce
+    qselect -u `whoami` -s E | xargs qdel -Wforce # Make sure we delete jobs in E state
     mail -s "An error occurred. ChIP-seq snakemake workflow aborted" `whoami`@ieo.it < {log}
     """)

@@ -8,7 +8,7 @@ rule call_peaks:
     log:
         "results/00log/macs2/{sample}_{control}_macs2.log"
     params:
-        out_dir      = "03peak_macs2/{sample}_{control}",
+        out_dir      = "results/03peak_macs2/{sample}_{control}",
         macs2_params = config["params"]["macs2"]["pk_calling"],
         pvalue       = config["params"]["macs2"]["pvalue"],
         gsize        = config["params"]["macs2"]["gsize"],
@@ -35,9 +35,9 @@ rule call_peaks_broad:
         case      = "results/02aln/{sample}.bam",
         reference = "results/02aln/{control}.bam"
     output: 
-        broadPeak  = "03peak_macs2/{sample}_{control}/broad/{sample}_peaks.broadPeak",
-        gappedPeak = "03peak_macs2/{sample}_{control}/broad/{sample}_peaks.gappedPeak",
-        xls        = "03peak_macs2/{sample}_{control}/broad/{sample}_peaks.xls",
+        broadPeak  = "results/03peak_macs2/{sample}_{control}/broad/{sample}_peaks.broadPeak",
+        gappedPeak = "results/03peak_macs2/{sample}_{control}/broad/{sample}_peaks.gappedPeak",
+        xls        = "results/03peak_macs2/{sample}_{control}/broad/{sample}_peaks.xls",
     log:
         "results/00log/macs2/{sample}_{control}_macs2.log"
     params:

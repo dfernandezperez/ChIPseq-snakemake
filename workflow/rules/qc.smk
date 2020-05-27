@@ -1,5 +1,20 @@
 # ------- FASTQC ------- #
 rule fastqc:
+    """This rule is a little bit tricky to fit PE fastq in multiqc.
+    Basically the probelm is that fastqc needs to run R1 and R2 separatelly,
+    which means 2 fastqc_zip files with different names. This will be recognized
+    by multiqc as different samples, so the report will be a mess.
+    My workaround has been to use just the forward fastq to create the report.
+    For this I need to change the fastq file name (because it has .1.) to fit
+    what multiqc is expecting as name. If multiqc reads A.1.fastq it won't know
+    that that file must match A.bam in the report, and they will be in different
+    rows. I know it's a pain of workaround but it's the only solution I found.
+    For this I need to create a symlink to the fastq to be able to change it's name
+    (without duplicating the file which would be less efficient). To make sure that 
+    the symlink will work it needs to be created from the foldere where it's going to be,
+    that's why the cd command of the rule it's imporant. Since the fastq folder can change
+    this step needs to work always, it's the only solution I cam up with.
+    """
     input:  
         get_trimmed_forward
     output: 
@@ -19,7 +34,9 @@ rule fastqc:
         "minimal"
     shell:
         """
-        ln -s "$(pwd)/{input}" {params.tmp}
+        cd {params.folder_name} # Move to folder where symlink is going to be created
+        ln -s {input} {params.tmp} # Create symlink to fastq file. Imporant to set the desired file name.
+        cd - # Go back to workdir
         fastqc -o {params.folder_name} -f fastq -t {threads} --noextract {params.tmp} 2> {log}
         """
 
