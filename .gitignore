@@ -13,7 +13,7 @@ Thumbs.db
 results/*
 !results/.gitignore
 .nfs*
-.core*
+core*
 .bash_history
 .cache/
 .conda/
