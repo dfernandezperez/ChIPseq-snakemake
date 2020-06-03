@@ -12,7 +12,7 @@ fastqc:
 
 align:
     cpu : 7
-    MaxMem : 20
+    MaxMem : 30
 
 align_spike:
     cpu : 7
