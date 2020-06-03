@@ -15,7 +15,7 @@ cluster: configuration/cluster.yaml
 # Just write the prefix-path where you want to put those files, or write '.' to have them in the workdir.
 # By now just fastq files will be located in this folder
 # IMPORTANT: if you have running multiple snakemake pipelines with the same tmp folder all the fastq files will be located togeter. Care with the sample names to not be repeated.
-tmp: /hpcnfs/scratch/temporary/.snakemake/
+tmp: /hpcnfs/scratch/temporary/.snakemake
 
 # Parameters for the software used
 params:
