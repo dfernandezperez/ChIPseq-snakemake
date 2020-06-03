@@ -15,13 +15,17 @@ cluster: configuration/cluster.yaml
 # Just write the prefix-path where you want to put those files, or write '.' to have them in the workdir.
 # By now just fastq files will be located in this folder
 # IMPORTANT: if you have running multiple snakemake pipelines with the same tmp folder all the fastq files will be located togeter. Care with the sample names to not be repeated.
-tmp: /hpcnfs/scratch/temporary/snakemake_test
+tmp: /hpcnfs/scratch/temporary/.snakemake/
 
 # Parameters for the software used
 params:
   bowtie: 
     global: "--chunkmbs 1024 -m 1 --best -S --no-unal -q"
     pe: "-I 10 -X 1000"
+  samtools:
+    # Memory used by every core of samtools (GB). Be careful that 
+    # memory x threads is not bigger than the amount of memory assigned to align rule
+    memory: 2
   fastp:
     se: "--stdin -t 1 -A -Q -L"
     pe: "-t 1 -A -Q -L"

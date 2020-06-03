@@ -12,6 +12,7 @@ Thumbs.db
 ################################
 results/*
 !results/.gitignore
+.nfs*
 
 .bash_history
 .cache/
@@ -27,6 +28,7 @@ results/*
 /06bigwig/
 /04peak_annot/
 .clusterLogs/
+!.clusterLogs/.gitignore*
 snakemake.log
 .benchmarks
 fastq-test/

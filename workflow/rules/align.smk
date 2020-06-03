@@ -17,9 +17,10 @@ rule align:
     threads:
         CLUSTER["align"]["cpu"]
     params:
-        index  = config["ref"]["index"],
-        bowtie = config["params"]["bowtie"]["global"],
-        reads  = set_reads,
+        index  	     = config["ref"]["index"],
+        bowtie 	     = config["params"]["bowtie"]["global"],
+        reads  	     = set_reads,
+        samtools_mem = config["params"]["samtools"]["memory"]
     message:
         "Aligning {input} with parameters {params.bowtie}"
     log:
@@ -32,7 +33,7 @@ rule align:
         bowtie -p {threads} {params.bowtie} {params.index} {params.reads} 2> {log.align} \
         | samblaster --removeDups 2> {log.rm_dups} \
         | samtools view -Sb -F 4 - \
-        | samtools sort -m 5G -@ {threads} -T {output.bam}.tmp -o {output.bam} - 2>> {log.align}
+        | samtools sort -m {params.samtools_mem}G -@ {threads} -T {output.bam}.tmp -o {output.bam} - 2>> {log.align}
         samtools index {output.bam}
         """
 
@@ -49,6 +50,7 @@ rule align_spike:
         index  = config["ref"]["index_spike"],
         bowtie = config["params"]["bowtie"]["global"],
         reads  = set_reads,
+        samtools_mem = config["params"]["samtools"]["memory"]
     message:
         "Aligning {input} with parameters {params.bowtie}"
     log:
@@ -61,7 +63,7 @@ rule align_spike:
         bowtie -p {threads} {params.bowtie} {params.index} {params.reads} 2> {log.align} \
         | samblaster --removeDups 2> {log.rm_dups} \
         | samtools view -Sb -F 4 - \
-        | samtools sort -m 5G -@ {threads} -T {output.bam}.tmp -o {output.bam} - 2>> {log.align}
+        | samtools sort -m {params.samtools_mem}G -@ {threads} -T {output.bam}.tmp -o {output.bam} - 2>> {log.align}
         samtools index {output.bam}
         """
 

@@ -11,7 +11,7 @@ rule fastqc:
     rows. I know it's a pain of workaround but it's the only solution I found.
     For this I need to create a symlink to the fastq to be able to change it's name
     (without duplicating the file which would be less efficient). To make sure that 
-    the symlink will work it needs to be created from the foldere where it's going to be,
+    the symlink will work it needs to be created from the folder where it's going to be,
     that's why the cd command of the rule it's imporant. Since the fastq folder can change
     this step needs to work always, it's the only solution I cam up with.
     """
@@ -23,7 +23,7 @@ rule fastqc:
         "results/00log/fqc/{sample}.log"
     params:
         folder_name = "results/01qc/fqc/",
-        tmp = "results/01qc/fqc/{sample}.fastq"
+        tmp = "{sample}.fastq.gz"
     threads: 
         CLUSTER["fastqc"]["cpu"]
     message: 
@@ -37,7 +37,7 @@ rule fastqc:
         cd {params.folder_name} # Move to folder where symlink is going to be created
         ln -s {input} {params.tmp} # Create symlink to fastq file. Imporant to set the desired file name.
         cd - # Go back to workdir
-        fastqc -o {params.folder_name} -f fastq -t {threads} --noextract {params.tmp} 2> {log}
+        fastqc -o {params.folder_name} -f fastq -t {threads} --noextract {params.folder_name}/{params.tmp} 2> {log}
         """
 
 

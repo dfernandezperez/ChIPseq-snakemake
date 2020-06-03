@@ -4,5 +4,6 @@ latency-wait: 120
 keep-going: true
 use-singularity: true
 singularity-args: "--bind /hpcnfs"
-shadow-prefix: "/hpcnfs/scratch/temporary"
+# If you want the default path (.snakeamke/shadow) write ".snakemake" in shadow-prefix.
+shadow-prefix: "/hpcnfs/scratch/temporary/.snakemake"
 cluster: "qsub -M {cluster.email} -m {cluster.EmailNotice} -N {cluster.jname} -l select=1:ncpus={cluster.cpu}:mem={cluster.MaxMem}gb -o {cluster.output} -e {cluster.error}"

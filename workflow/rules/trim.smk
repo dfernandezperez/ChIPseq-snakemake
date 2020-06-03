@@ -5,8 +5,8 @@ rule cp_fastq_pe:
     input:
         get_fastq
     output:
-        fastq1=temp("fastq/{sample}-{lane}.1.fastq.gz"),
-        fastq2=temp("fastq/{sample}-{lane}.2.fastq.gz")
+        fastq1=temp("results/fastq/{sample}-{lane}.1.fastq.gz"),
+        fastq2=temp("results/fastq/{sample}-{lane}.2.fastq.gz")
     message:
         "Copying fastq files {input}"
     shell:
@@ -31,8 +31,8 @@ rule cp_fastq_se:
 
 rule mergeFastq_pe:
     input:
-        fw = lambda w: expand("fastq/{lane.sample}-{lane.lane}.1.fastq.gz", lane=units.loc[w.sample].itertuples()),
-        rv = lambda w: expand("fastq/{lane.sample}-{lane.lane}.2.fastq.gz", lane=units.loc[w.sample].itertuples())
+        fw = lambda w: expand("results/fastq/{lane.sample}-{lane.lane}.1.fastq.gz", lane=units.loc[w.sample].itertuples()),
+        rv = lambda w: expand("results/fastq/{lane.sample}-{lane.lane}.2.fastq.gz", lane=units.loc[w.sample].itertuples())
     output:
         fastq1 = temp("{tmp}/fastq/{{sample}}.1.fastq.gz".format(tmp=config["tmp"])),
         fastq2 = temp("{tmp}/fastq/{{sample}}.2.fastq.gz".format(tmp=config["tmp"]))
@@ -49,7 +49,7 @@ rule mergeFastq_pe:
 
 rule mergeFastq_se:
     input:
-        lambda w: expand("fastq/{lane.sample}-{lane.lane}.fastq.gz", lane=units.loc[w.sample].itertuples()),
+        lambda w: expand("results/fastq/{lane.sample}-{lane.lane}.fastq.gz", lane=units.loc[w.sample].itertuples()),
     output:
         temp("{tmp}/fastq/{{sample}}.se.fastq.gz".format(tmp=config["tmp"]))
     log:
