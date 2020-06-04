@@ -16,7 +16,7 @@ rule call_peaks:
     message: 
         "call_peaks macs2 with input {input.reference} for sample {input.case}"
     benchmark:
-        ".benchmarks/{sample}_{control}.callpeaks.benchmark.txt"
+        "results/.benchmarks/{sample}_{control}.callpeaks.benchmark.txt"
     shell:
         """
         macs2 callpeak {params.paired_end} \
@@ -50,7 +50,7 @@ rule call_peaks_broad:
     message: 
         "call_peaks macs2 with input {input.reference} for sample {input.case}"
     benchmark:
-        ".benchmarks/{sample}_{control}.callpeaks.benchmark.txt"
+        "results/.benchmarks/{sample}_{control}.callpeaks.benchmark.txt"
     shell:
         """
         macs2 callpeak {params.paired_end} \

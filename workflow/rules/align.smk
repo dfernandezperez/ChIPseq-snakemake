@@ -27,7 +27,7 @@ rule align:
        align   = "results/00log/alignments/{sample}.log",
        rm_dups = "results/00log/alignments/rm_dup/{sample}.log",
     benchmark:
-        ".benchmarks/{sample}.align.benchmark.txt"
+        "results/.benchmarks/{sample}.align.benchmark.txt"
     shell:
         """
         bowtie -p {threads} {params.bowtie} {params.index} {params.reads} 2> {log.align} \
@@ -57,7 +57,7 @@ rule align_spike:
        align   = "results/00log/alignments/{sample}_spike.log",
        rm_dups = "results/00log/alignments/rm_dup/{sample}_spike.log",
     benchmark:
-        ".benchmarks/{sample}.alignSpike.benchmark.txt"
+        "results/.benchmarks/{sample}.alignSpike.benchmark.txt"
     shell:
         """
         bowtie -p {threads} {params.bowtie} {params.index} {params.reads} 2> {log.align} \

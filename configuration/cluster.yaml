@@ -3,8 +3,8 @@ __default__ :
     email       : "`whoami`@ieo.it"
     EmailNotice : "a"
     jname       : "{rule}"
-    output      : ".clusterLogs/{rule}.{wildcards}.out"
-    error       : ".clusterLogs/{rule}.{wildcards}.err"
+    output      : "results/.clusterLogs/{rule}.{wildcards}.out"
+    error       : "results/.clusterLogs/{rule}.{wildcards}.err"
     MaxMem      : 8
 
 fastqc:

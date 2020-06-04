@@ -28,8 +28,6 @@ rule fastqc:
         CLUSTER["fastqc"]["cpu"]
     message: 
         "Running fastqc for {input}"
-    benchmark:
-        ".benchmarks/{sample}.fastqc.benchmark.txt"
     shadow: 
         "minimal"
     shell:
@@ -55,8 +53,6 @@ rule phantom_peak_qual:
         out_dir = "results/01qc/phantompeakqual"
     message:
         "Running phantompeakqual for {wildcards.sample}"
-    benchmark:
-        ".benchmarks/{sample}.phantompeakqual.benchmark.txt"
     shell:
         """
         /opt/miniconda2/bin/Rscript --vanilla workflow/scripts/run_spp_nodups.R \
