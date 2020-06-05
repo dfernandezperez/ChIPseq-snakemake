@@ -16,7 +16,7 @@ rule fastqc:
     this step needs to work always, it's the only solution I cam up with.
     """
     input:  
-        get_trimmed_forward
+        get_fq_forward
     output: 
         "results/01qc/fqc/{sample}_fastqc.zip"
     log:    
@@ -127,7 +127,7 @@ rule GC_bias:
     message:
         "Computing GC bias for sample {wildcards.sample}"
     benchmark:
-        ".benchmarks/{sample}_{control}.GCbias.benchmark.txt"
+        "results/.benchmarks/{sample}_{control}.GCbias.benchmark.txt"
     shell:
         """
         bedops -u {input.bed} {params.repeatMasker} > {params.tempBed}

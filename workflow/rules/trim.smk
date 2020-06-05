@@ -20,7 +20,7 @@ rule cp_fastq_se:
     input:
         get_fastq
     output:
-        temp("fastq/{sample}-{lane}.fastq.gz"),
+        temp("results/fastq/{sample}-{lane}.fastq.gz"),
     message:
         "Copying fastq files {input}"
     shell:
@@ -59,4 +59,55 @@ rule mergeFastq_se:
     shell:
         """
         cat {input} > {output}
+        """
+
+
+rule fastp_pe:
+    input:
+        fw = "{tmp}/fastq/{{sample}}.1.fastq.gz".format(tmp=config["tmp"]),
+        rv = "{tmp}/fastq/{{sample}}.2.fastq.gz".format(tmp=config["tmp"])
+    output:
+        fastq1 = temp("{tmp}/fastq/trimmed/{{sample}}.1.fastq.gz".format(tmp=config["tmp"])),
+        fastq2 = temp("{tmp}/fastq/trimmed/{{sample}}.2.fastq.gz".format(tmp=config["tmp"]))
+    log:
+        "00log/fastp/{sample}.log"
+    threads:
+        CLUSTER["fastp_pe"]["cpu"]
+    params:
+        fastp_params = config["params"]["fastp"]["pe"],
+    message:
+        "Processing fastq files from {input}"
+    shadow:
+        "minimal"
+    shell:
+        """
+        fastp -i {input.fw} \
+        -I {input.rv} \
+        -o {output.fastq1} \
+        -O {output.fastq2} \
+        -w {threads} \
+        {params.fastp_params} 2> {log}
+        """
+
+
+rule fastp_se:
+    input:
+        "{tmp}/fastq/{{sample}}.se.fastq.gz".format(tmp=config["tmp"])
+    output:
+        temp("{tmp}/fastq/trimmed/{{sample}}.se.fastq.gz".format(tmp=config["tmp"]))
+    log:
+        "00log/fastp/{sample}.log"
+    threads:
+        CLUSTER["fastp_se"]["cpu"]
+    params:
+        fastp_params = config["params"]["fastp"]["se"],
+    message:
+        "Processing fastq files from {input}"
+    shadow:
+        "minimal"
+    shell:
+        """
+        fastp -i {input} \
+        -o {output} \
+        -w {threads} {params.fastp_params} 2> {log}
         """

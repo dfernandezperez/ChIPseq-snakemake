@@ -10,7 +10,7 @@ def set_reads(wildcards, input):
 
 rule align:
     input:
-        get_trimmed
+        get_fq
     output:
          bam   = temp("results/02aln/{sample}.bam.tmp"),
          index = temp("results/02aln/{sample}.bam.tmp.bai")
@@ -40,7 +40,7 @@ rule align:
 
 rule align_spike:
     input:
-        get_trimmed_spike
+        get_fq_spike
     output:
         bam   = temp("results/02aln_dm/{sample}_spike.bam"),
         index = temp("results/02aln_dm/{sample}_spike.bam.bai")
@@ -129,7 +129,7 @@ rule bam2bigwig:
     message: 
         "making input subtracted bigwig for sample {wildcards.sample} with input {input.reference}"
     benchmark:
-        ".benchmarks/{sample}_{control}.bam2bw.benchmark.txt"
+        "results/.benchmarks/{sample}_{control}.bam2bw.benchmark.txt"
     shell:
         """
         python {params.reads} \

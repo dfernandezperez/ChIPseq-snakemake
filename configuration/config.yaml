@@ -1,13 +1,16 @@
 # path (from the repository root) to sample sheet (TSV format, columns: sample, condition, ...)
 samples: configuration/samples.tsv
 
+
 # path (from the repository root) to sequencing unit sheet (TSV format, columns: sample, unit, fq1, fq2)
 # Units are technical replicates (e.g. lanes, or resequencing of the same biological
 # sample).
 units: configuration/units.tsv
 
+
 # path (from the repository root) to cluster configuration. Parameters for submitting jobs to cluster via qsub
 cluster: configuration/cluster.yaml
+
 
 # Prefix to temporary
 # Some files -such as fastq- occupy a lot of space. To avoid space problems during the processing of the pipelines
@@ -15,7 +18,14 @@ cluster: configuration/cluster.yaml
 # Just write the prefix-path where you want to put those files, or write '.' to have them in the workdir.
 # By now just fastq files will be located in this folder
 # IMPORTANT: if you have running multiple snakemake pipelines with the same tmp folder all the fastq files will be located togeter. Care with the sample names to not be repeated.
-tmp: /hpcnfs/scratch/temporary/.snakemake
+tmp: /hpcnfs/scratch/temporary/.snakemake/chipseq
+
+
+# perform trimming: false or true
+# if true go to params (at the end)
+# to set desired trimming parameters
+trimming: false
+
 
 # Parameters for the software used
 params:
@@ -27,7 +37,7 @@ params:
     # memory x threads is not bigger than the amount of memory assigned to align rule
     memory: 2
   fastp:
-    se: "--stdin -t 1 -A -Q -L"
+    se: "-t 1 -A -Q -L"
     pe: "-t 1 -A -Q -L"
   macs2:
     pk_calling: "--keep-dup all -m 3 30"

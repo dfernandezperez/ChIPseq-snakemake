@@ -99,7 +99,7 @@ include: "rules/prepare2GEO.smk"
 onsuccess:
     shell(
     """
-    rm -r fastq/
+    rm -r results/fastq/
     qselect -u `whoami` -s E | xargs qdel -Wforce # Make sure we delete jobs in E state
     """)
 

@@ -10,6 +10,12 @@ __default__ :
 fastqc:
     cpu : 1
 
+fastp_pe:
+    cpu : 3
+
+fastp_se:
+    cpu : 3
+
 align:
     cpu : 7
     MaxMem : 30
