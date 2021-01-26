@@ -41,7 +41,7 @@ ALL_BROAD_PEAKS  = expand("results/03peak_macs2/{sample}_{control}/broad/{sample
 ALL_BIGWIG       = expand("results/06bigwig/{sample}_{control}.bw", zip, sample = ALL_IP, control = ALL_CONTROLS)
 ALL_GCBIAS       = expand("results/01qc/GCbias/{sample}_{control}_GCbias.pdf", zip, sample = ALL_IP, control = ALL_CONTROLS)
 ALL_QC           = ["results/01qc/multiqc/multiqc_report.html"]
-ALL_BIGWIG_NOSUB = expand("results/06bigwig/noSubtract/{sample}.bw", sample = SAMPLES.NAME)
+ALL_BIGWIG_NOSUB = expand("results/06bigwig/noSubtract/{sample}_{input}.bw", zip, sample = SAMPLES.NAME, input = SAMPLES.INPUT_SPIKE)
 ALL_BW2SERVER    = expand("results/temp_file_{sample}_{control}.txt",  zip, sample = ALL_IP, control = ALL_CONTROLS)
 
 

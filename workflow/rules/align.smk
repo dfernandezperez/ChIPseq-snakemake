@@ -143,25 +143,25 @@ rule bam2bigwig:
 
 def set_reads_spike2(wildcards, input):
         n = len(input)
-        assert n == 1 or n == 2, "input->sample must have 1 (sample) or 2 (sample + spike) elements"
+        assert n == 1 or n == 4, "input->sample must have 1 (sample) or 4 (sample + spike + input + input_spike) elements"
         if n == 1:
             reads = "workflow/scripts/bam2bigwig_noSubtract.py"
             return reads
-        if n == 2:
-            reads = "workflow/scripts/bam2bigwig_spike_noSubtract.py --spike {}".format(input.spike)
+        if n == 4:
+            reads = "workflow/scripts/bam2bigwig_spike_noSubtract.py --spike {spike} --refmm {ref_mm} --refdm {ref_dm}".format(spike = input.spike, ref_mm = input.ref_mm, ref_dm = input.ref_dm)
             return reads
 
 rule bam2bigwig_noSubstract:
     input: 
         unpack(get_bam_spike)
     output:  
-        "results/06bigwig/noSubtract/{sample}.bw"
+        "results/06bigwig/noSubtract/{sample}_{input}.bw"
     params: 
         read_exten = set_read_extension,
         reads      = set_reads_spike2,
         params     = config["bam2bigwig"]["other"]
     log: 
-        "results/00log/bam2bw/{sample}_bigwig.bam2bw"
+        "results/00log/bam2bw/{sample}_{input}_bigwig.bam2bw"
     threads: 
         CLUSTER["bam2bigwig"]["cpu"]
     message: 

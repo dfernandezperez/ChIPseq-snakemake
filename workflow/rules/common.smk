@@ -82,4 +82,7 @@ def get_bam_spike(wildcards):
     if not is_spike(wildcards.sample):
         return { "case": "results/02aln/{sample}.bam".format(sample=wildcards.sample) }
     return { "case": "results/02aln/{sample}.bam".format(sample=wildcards.sample),
-             "spike": "results/02aln_dm/{sample}_spike.bam.clean".format(sample=wildcards.sample) }
+             "spike": "results/02aln_dm/{sample}_spike.bam.clean".format(sample=wildcards.sample),
+             "ref_mm": "results/02aln/{input}.bam".format(input=wildcards.input),
+             "ref_dm": "results/02aln_dm/{input}_spike.bam.clean".format(input=wildcards.input)
+              }
