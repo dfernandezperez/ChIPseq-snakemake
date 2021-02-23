@@ -61,7 +61,7 @@ ALL_PEAKS_GEO    = expand(
 #-----------------------------------------------------------------------------------------------------------------------
 # DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE FOR DOWNSAMPLED FILES
 #-----------------------------------------------------------------------------------------------------------------------
-IPS_downsample          = SAMPLES[ (SAMPLES["IS_INPUT"] == False) & ((SAMPLES["DOWNSAMPLE_GROUP"] != "FALSE") | (SAMPLES["DOWNSAMPLE_GROUP"] != False))]
+IPS_downsample          = SAMPLES[ (SAMPLES["IS_INPUT"] == False) & (SAMPLES["DOWNSAMPLE_GROUP"].apply(str) != "FALSE") ]
 ALL_IP_downsample       = IPS_downsample.NAME
 ALL_CONTROLS_downsample = IPS_downsample.INPUT
 GROUP_DOWNSAMPLE        = IPS_downsample.DOWNSAMPLE_GROUP

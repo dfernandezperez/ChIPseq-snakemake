@@ -1,6 +1,6 @@
 rule set_downsample_proportion:
     input:
-        lambda w: expand("results/02aln/{sample}.bam", sample = SAMPLE[ SAMPLE["DOWNSAMPLE_GROUP"] == w.group ].NAME)
+        lambda w: expand("results/02aln/{sample}.bam", sample = SAMPLES[ SAMPLES["DOWNSAMPLE_GROUP"].apply(str) == w.group ].NAME)
     output:
         downsample_factor = "results/02aln/downsampled/set_proportion_{group}.txt"
     log:
