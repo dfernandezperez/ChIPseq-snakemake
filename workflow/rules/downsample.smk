@@ -1,6 +1,6 @@
 rule set_downsample_proportion:
     input:
-        lambda w: expand("results/02aln/{sample}.bam", sample = IPS_downsample[ IPS_downsample["DOWNSAMPLE_GROUP"] == w.group ].NAME)
+        lambda w: expand("results/02aln/{sample}.bam", sample = SAMPLE[ SAMPLE["DOWNSAMPLE_GROUP"] == w.group ].NAME)
     output:
         downsample_factor = "results/02aln/downsampled/set_proportion_{group}.txt"
     log:
@@ -24,7 +24,7 @@ rule perform_downsample:
         nreads=`samtools view -c {input.bam}`
         prop=$(echo "print($target/$nreads)" | python3)
 
-        samtools view -bs {input.bam} > {output}
+        samtools view -b -s $prop {input.bam} > {output}
         """
 
 def select_input(wildcards):
