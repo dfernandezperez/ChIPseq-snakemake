@@ -58,6 +58,15 @@ ALL_PEAKS_GEO    = expand(
     control = ALL_CONTROLS
     )
 
+#-----------------------------------------------------------------------------------------------------------------------
+# DETERMINE ALL THE OUTPUT FILES TO RUN SNAKEMAKE FOR DOWNSAMPLED FILES
+#-----------------------------------------------------------------------------------------------------------------------
+IPS_downsample          = SAMPLES[ (SAMPLES["IS_INPUT"] == False) & ((SAMPLES["DOWNSAMPLE_GROUP"] != "FALSE") | (SAMPLES["DOWNSAMPLE_GROUP"] != False))]
+ALL_IP_downsample       = IPS_downsample.NAME
+ALL_CONTROLS_downsample = IPS_downsample.INPUT
+GROUP_DOWNSAMPLE        = IPS_downsample.DOWNSAMPLE_GROUP
+
+ALL_PEAKANNOT_DOWNSAMPLED    = expand("results/04peak_annot/downsampled/{sample}_{control}_{group}/{sample}_peaks_p" + config["params"]["macs2"]["filt_peaks_pval"] + ".annot", zip, sample = ALL_IP_downsample, control = ALL_CONTROLS_downsample, group = GROUP_DOWNSAMPLE)
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Local rules are rules that won't be submitted to the scheduler but executed in the current session (front-end or node)
@@ -83,6 +92,8 @@ rule all_server:
 rule all_geo:
     input: "results/GEO/md5sum/md5sum_peaks.txt", "results/GEO/md5sum/md5sum_fastqs.txt", ALL_PEAKS_GEO + ALL_FASTQ_GEO_SE + ALL_FASTQ_GEO_PE
 
+rule all_downsample:
+    input: ALL_PEAKANNOT_DOWNSAMPLED
 
 ##### load rules #####
 include: "rules/common.smk"
@@ -91,6 +102,7 @@ include: "rules/align.smk"
 include: "rules/peaks.smk"
 include: "rules/qc.smk"
 include: "rules/prepare2GEO.smk"
+include: "rules/downsample.smk"
 
 ##### handle possible errors, clean temp folders #####
 # Remove the folder used to create the fastq files (snakemake removes the tmp files but not the folder...)
