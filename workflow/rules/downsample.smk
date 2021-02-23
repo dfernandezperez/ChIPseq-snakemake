@@ -22,9 +22,9 @@ rule perform_downsample:
         """
         target=`cat {input.downsample_factor}`
         nreads=`samtools view -c {input.bam}`
-        prop=$(echo "print($target/$nreads)" | python)
+        prop=$(echo "print($target/$nreads)" | python3)
 
-        samtools view -sb {input.bam} > {output}
+        samtools view -bs {input.bam} > {output}
         """
 
 def select_input(wildcards):
