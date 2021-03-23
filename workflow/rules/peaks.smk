@@ -4,6 +4,7 @@ rule call_peaks:
         reference = "results/02aln/{control}.bam"
     output: 
         narrowPeak = "results/03peak_macs2/{sample}_{control}/{sample}_peaks.narrowPeak",
+	summit     = "results/03peak_macs2/{sample}_{control}/{sample}_summits.bed",
         xls        = "results/03peak_macs2/{sample}_{control}/{sample}_peaks.xls"
     log:
         "results/00log/macs2/{sample}_{control}_macs2.log"
@@ -67,15 +68,18 @@ rule call_peaks_broad:
 
 rule filter_peaks:
     input:
-        rules.call_peaks.output.narrowPeak
+        narrowpeak = rules.call_peaks.output.narrowPeak
+	summit     = rules.call_peaks.output.summit
     output:
-        bed_filt = "results/03peak_macs2/{{sample}}_{{control}}/{{sample}}_peaks_p{pvalue}.bed".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"])
+        bed_filt    = "results/03peak_macs2/{{sample}}_{{control}}/{{sample}}_peaks_p{pvalue}.bed".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"])
+	summit_filt = "results/03peak_macs2/{{sample}}_{{control}}/{{sample}}_summits_p{pvalue}.bed".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"])
     params:
         pval_filt = config["params"]["macs2"]["filt_peaks_pval"]
     shell:
         """
-        awk "\$8 >= {params.pval_filt}" {input} | cut -f1-4,8 > {output.bed_filt}
-        """
+        awk "\$8 >= {params.pval_filt}" {input.narrowpeak} | cut -f1-4,8 > {output.bed_filt}
+        awk "\$5 >= {params.pval_filt}" {input.summit} > {output.summit_filt}
+	"""
 
 
 rule peakAnnot:
