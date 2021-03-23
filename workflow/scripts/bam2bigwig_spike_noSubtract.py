@@ -51,7 +51,7 @@ ref_spike = pysam.AlignmentFile(ref_spike, "rb")
 ################################################################
 # Following https://bio-protocol.org/e2981#biaoti24681
 Nm    = dm.mapped
-gamma = float(ref_spike.mapped)/float(ref_input.mapped+ref_spike.mapped)
+gamma = float(ref_spike.mapped)/float(ref_input.mapped)
 alfa = str(gamma/Nm*1000000)
 print alfa
 
