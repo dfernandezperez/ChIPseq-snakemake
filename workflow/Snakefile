@@ -42,7 +42,7 @@ ALL_BIGWIG       = expand("results/06bigwig/{sample}_{control}.bw", zip, sample 
 ALL_GCBIAS       = expand("results/01qc/GCbias/{sample}_{control}_GCbias.pdf", zip, sample = ALL_IP, control = ALL_CONTROLS)
 ALL_QC           = ["results/01qc/multiqc/multiqc_report.html"]
 ALL_BIGWIG_NOSUB = expand("results/06bigwig/noSubtract/{sample}_{input}.bw", zip, sample = SAMPLES.NAME, input = SAMPLES.INPUT_SPIKE)
-ALL_BW2SERVER    = expand("results/temp_file_{sample}_{control}.txt",  zip, sample = ALL_IP, control = ALL_CONTROLS)
+ALL_BW2SERVER    = expand("results/temp_file_{sample}_{input}_{control}.txt",  zip, sample = ALL_IP, input = SAMPLES.INPUT_SPIKE, control = ALL_CONTROLS)
 
 
 #-------------------- Set variables and target files to prepare data for GEO upload -----------------------#

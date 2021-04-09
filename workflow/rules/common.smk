@@ -11,9 +11,9 @@ def get_fq(wildcards):
     if config["trimming"]:
         if not is_single_end(**wildcards):
             # paired-end sample
-            return expand("{tmp}/fastq/trimmed{sample}.{group}.fastq.gz", group=[1, 2], **wildcards, tmp = config["tmp"])
+            return expand("{tmp}/fastq/trimmed/{sample}.{group}.fastq.gz", group=[1, 2], **wildcards, tmp = config["tmp"])
         # single end sample
-        return "{tmp}/fastq/trimmed{sample}.se.fastq.gz".format(tmp = config["tmp"], **wildcards)
+        return "{tmp}/fastq/trimmed/{sample}.se.fastq.gz".format(tmp = config["tmp"], **wildcards)
     else:
         # no trimming, use raw reads
         if not is_single_end(**wildcards):
@@ -28,9 +28,9 @@ def get_fq_spike(wildcards):
         if config["trimming"]:
             if not is_single_end(**wildcards):
                 # paired-end sample
-                return expand("{tmp}/fastq/trimmed{sample}.{group}.fastq.gz", group=[1, 2], **wildcards, tmp = config["tmp"])
+                return expand("{tmp}/fastq/trimmed/{sample}.{group}.fastq.gz", group=[1, 2], **wildcards, tmp = config["tmp"])
             # single end sample
-            return "{tmp}/fastq/trimmed{sample}.se.fastq.gz".format(tmp = config["tmp"], **wildcards)
+            return "{tmp}/fastq/trimmed/{sample}.se.fastq.gz".format(tmp = config["tmp"], **wildcards)
         else:
             # no trimming, use raw reads
             if not is_single_end(**wildcards):

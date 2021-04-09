@@ -178,11 +178,11 @@ rule bam2bigwig_noSubstract:
 
 rule bigwig2server:
     input: 
-        bw         = "results/06bigwig/noSubtract/{sample}.bw",
+        bw         = "results/06bigwig/noSubtract/{sample}_{input}.bw",
         samblaster = "results/00log/alignments/rm_dup/{sample}.log",
         bowtie     = "results/00log/alignments/{sample}.log"
     output:
-        temp("results/temp_file_{sample}_{control}.txt")
+        temp("results/temp_file_{sample}_{input}_{control}.txt")
     params:
         user     = lambda wildcards : SAMPLES.USER[wildcards.sample],
         antibody = lambda wildcards : SAMPLES.AB[wildcards.sample],
