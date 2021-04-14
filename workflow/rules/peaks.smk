@@ -68,10 +68,10 @@ rule call_peaks_broad:
 
 rule filter_peaks:
     input:
-        narrowpeak = rules.call_peaks.output.narrowPeak
+        narrowpeak = rules.call_peaks.output.narrowPeak,
 	summit     = rules.call_peaks.output.summit
     output:
-        bed_filt    = "results/03peak_macs2/{{sample}}_{{control}}/{{sample}}_peaks_p{pvalue}.bed".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"])
+        bed_filt    = "results/03peak_macs2/{{sample}}_{{control}}/{{sample}}_peaks_p{pvalue}.bed".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"]),
 	summit_filt = "results/03peak_macs2/{{sample}}_{{control}}/{{sample}}_summits_p{pvalue}.bed".format(pvalue = config["params"]["macs2"]["filt_peaks_pval"])
     params:
         pval_filt = config["params"]["macs2"]["filt_peaks_pval"]
